@@ -1,0 +1,14 @@
+dist/
+
+.DS_Store
+
+.terraform/
+
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.iml
