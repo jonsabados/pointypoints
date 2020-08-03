@@ -1,19 +1,20 @@
 import VueRouter from 'vue-router'
 import Home from '@/home/Home.vue'
-import About from '@/about/About.vue'
-import Search from '@/search/SearchDisplay.vue'
-import Articles from '@/articles/Articles.vue'
-import ArticlesHome from '@/articles/ArticlesHome.vue'
-import Article from '@/articles/Article.vue'
-import Privacy from '@/legal/Privacy.vue'
+import NewSession from '@/pointing/NewSession.vue'
 
 export const HOME_ROUTE_NAME = 'home'
+export const NEW_SESSION_ROUTE_NAME = 'newSession'
 
 const routes = [
   {
     path: '/',
     name: HOME_ROUTE_NAME,
     component: Home
+  },
+  {
+    path: '/session/new',
+    name: NEW_SESSION_ROUTE_NAME,
+    component: NewSession
   }
 ]
 

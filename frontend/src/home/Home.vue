@@ -1,8 +1,8 @@
 <template>
   <main class="container-fluid" role="main">
-    <h1>pointypoints.com</h1>
+    <h1>PointyPoints Task Pointing</h1>
     <p>
-      More coming soon
+      Something about fun with task pointing here...
     </p>
   </main>
 </template>

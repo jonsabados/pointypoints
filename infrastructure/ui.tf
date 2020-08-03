@@ -5,6 +5,10 @@ resource "aws_s3_bucket" "ui_bucket" {
   website {
     index_document = "index.html"
   }
+
+  tags = {
+    Workspace = terraform.workspace
+  }
 }
 
 resource "aws_acm_certificate" "ui_cert" {
@@ -13,6 +17,10 @@ resource "aws_acm_certificate" "ui_cert" {
     "${terraform.workspace == "default" ? "www." : "www-"}${local.workspace_domain_prefix}${data.aws_ssm_parameter.domain_name.value}"
   ]
   validation_method = "DNS"
+
+  tags = {
+    Workspace = terraform.workspace
+  }
 }
 
 resource "aws_route53_record" "ui_cert_cert_verification_record" {
@@ -81,6 +89,10 @@ resource "aws_cloudfront_distribution" "ui_cdn" {
   viewer_certificate {
     ssl_support_method  = "sni-only"
     acm_certificate_arn = aws_acm_certificate.ui_cert.arn
+  }
+
+  tags = {
+    Workspace = terraform.workspace
   }
 }
 

@@ -4,16 +4,16 @@ UI_BUCKET=$(aws ssm get-parameter --output json --name pointypoints.uibucket | j
 
 WORKSPACE=`(cd ../infrastructure && terraform workspace show)`
 
-echo "Workspace: $WORKSPACE"
 if [ $WORKSPACE != 'default' ]; then
   UI_BUCKET="$WORKSPACE-$UI_BUCKET"
 fi
 
 echo "Syncing dist/ to ${UI_BUCKET}"
 
-# put everything in the bucket with a max age of 1 year
-aws s3 sync ./dist "s3://$UI_BUCKET" --cache-control max-age=31536000 --delete --acl public-read
-# then switch the max age on index.html to 60 seconds. Note, if stuff goes wrong with this or if something happens
-# to hit cloudflare at the exact moment its cache expires its possible that cloudflare will cache it for a very long
-# time, and we will need to invalidate the cache.
-aws s3 cp "s3://$UI_BUCKET/index.html" "s3://$UI_BUCKET/index.html" --metadata-directive REPLACE --cache-control max-age=60 --content-type text/html --acl public-read
+# When syncing the idea is put all the new stuff in, then put the new index page in that references the new stuff
+# and then finally purge the old stuff. This way there isn't any funkyness with getting an index page that references
+# assets that haven't been uploaded, or CloudFront caching the index for long periods of time if the max age on it
+# hasn't been set
+aws s3 sync ./dist "s3://$UI_BUCKET" --exclude index.html  --cache-control max-age=31536000 --acl public-read
+aws s3 cp ./dist/index.html "s3://$UI_BUCKET/index.html" --metadata-directive REPLACE --cache-control max-age=60 --content-type text/html --acl public-read
+aws s3 sync ./dist "s3://$UI_BUCKET" --exclude index.html --cache-control max-age=31536000 --delete --acl public-read
