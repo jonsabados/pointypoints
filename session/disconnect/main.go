@@ -7,12 +7,14 @@ import (
 	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/jonsabados/pointypoints/api"
 	"github.com/jonsabados/pointypoints/logging"
+	"github.com/rs/zerolog"
 )
 
-func NewHandler(prepareLogs logging.Preparer) func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) api.Response {
-	return func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) api.Response {
+func NewHandler(prepareLogs logging.Preparer) func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
+	return func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
 		ctx = prepareLogs(ctx)
-		return api.NewSuccessResponse(ctx, "whatever")
+		zerolog.Ctx(ctx).Info().Interface("request", request).Msg("disconnect called")
+		return api.NewSuccessResponse(ctx, "whatever"), nil
 	}
 }
 

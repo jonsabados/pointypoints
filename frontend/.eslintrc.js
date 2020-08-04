@@ -9,7 +9,7 @@ module.exports = {
     '@vue/typescript'
   ],
   rules: {
-    'no-console': 'error',
+    'no-console': 'warn',
     'no-debugger': 'error',
     'space-before-function-paren': ['error', 'never']
   },

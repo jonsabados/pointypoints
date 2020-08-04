@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	awssession "github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/apigatewaymanagementapi"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/jonsabados/pointypoints/api"
@@ -18,28 +19,42 @@ import (
 	"time"
 )
 
-func NewHandler(prepareLogs logging.Preparer, startSession session.Starter) func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) api.Response {
-	return func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) api.Response {
+func NewHandler(prepareLogs logging.Preparer, startSession session.Starter, dispatch api.MessageDispatcher) func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
+	return func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
 		ctx = prepareLogs(ctx)
 		toStart := new(session.StartRequest)
 		err := json.Unmarshal([]byte(request.Body), toStart)
 		if err != nil {
 			zerolog.Ctx(ctx).Warn().Str("error", fmt.Sprintf("%+v", err)).Msg("error session start reading request body")
-			return api.NewInternalServerError(ctx)
+			return api.NewInternalServerError(ctx), nil
 		}
 		if toStart.Facilitator.Name == "" {
 			return api.NewValidationFailureResponse(ctx, api.ValidationError{
 				Errors: []string{"facilitator name is required"},
-			})
+			}), nil
 		}
 		toStart.Facilitator.SocketID = request.RequestContext.ConnectionID
 
 		sess, err := startSession(ctx, *toStart)
 		if err != nil {
 			zerolog.Ctx(ctx).Warn().Str("error", fmt.Sprintf("%+v", err)).Msg("error starting session")
-			return api.NewInternalServerError(ctx)
+			err = dispatch(ctx, request.RequestContext.ConnectionID, api.Message{
+				Type: api.ErrorEncountered,
+				Body: err.Error(),
+			})
+			if err != nil {
+				zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error dispatching message")
+			}
+			return api.NewInternalServerError(ctx), nil
 		}
-		return api.NewSuccessResponse(ctx, sess)
+		err = dispatch(ctx, request.RequestContext.ConnectionID, api.Message{
+			Type: api.SessionCreated,
+			Body: sess,
+		})
+		if err != nil {
+			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error dispatching message")
+		}
+		return api.NewSuccessResponse(ctx, sess), nil
 	}
 }
 
@@ -61,5 +76,16 @@ func main() {
 	sessionTable := os.Getenv("SESSION_TABLE")
 	starter := session.NewStarter(dynamo, sessionTable, time.Hour)
 
-	lambda.Start(NewHandler(logPreparer, starter))
+	gatewaysession, err := awssession.NewSession(&aws.Config{
+		Region:      aws.String(os.Getenv("REGION")),
+		Endpoint:    aws.String(os.Getenv("GATEWAY_ENDPOINT")),
+	})
+	if err != nil {
+		panic(err)
+	}
+	gateway := apigatewaymanagementapi.New(gatewaysession)
+	xray.AWS(gateway.Client)
+	dispatcher := api.NewMessageDispatcher(gateway)
+
+	lambda.Start(NewHandler(logPreparer, starter, dispatcher))
 }

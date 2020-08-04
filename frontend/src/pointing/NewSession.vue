@@ -40,7 +40,29 @@ export default class NewSession extends Vue {
   facilitatorParticipating: boolean = false
 
   startSession() {
-    alert(`would start with ${this.facilitatorName}/${this.facilitatorParticipating}`)
+    const facilitatorName = this.facilitatorName
+    const facilitatorHandle = this.facilitatorHandle
+    const facilitatorParticipating = this.facilitatorParticipating
+    const socket = new WebSocket(`${process.env['VUE_APP_POINTING_SOCKET_URL']}/`)
+    socket.onopen = function() {
+      console.log('[open] Connection established')
+      console.log('Sending to server')
+      socket.send(JSON.stringify({
+        testing: 'one two three'
+      }))
+      socket.send(JSON.stringify({
+        action: 'newSession',
+        facilitator: {
+          name: facilitatorName,
+          handle: facilitatorHandle
+        },
+        facilitatorParticipating: facilitatorParticipating
+      }))
+      socket.onmessage = (ev) => {
+        console.log('receieved event')
+        console.log(ev)
+      }
+    }
   }
 
   get disableSubmit(): boolean {

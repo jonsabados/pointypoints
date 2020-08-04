@@ -2,8 +2,11 @@ package api
 
 import (
 	"context"
+	"encoding/json"
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/google/uuid"
+	"net/http"
 )
 
 type FieldValidationError struct {
@@ -18,34 +21,28 @@ type ValidationError struct {
 
 type Response struct {
 	Result        interface{} `json:"result"`
-	RequestFailed bool        `json:"requestFailed"`
-	FailureCode   string      `json:"failureCode,omitempty"`
 	RequestID     string      `json:"requestId"`
 }
 
-func NewSuccessResponse(ctx context.Context, result interface{}) Response {
-	return Response{
+func NewSuccessResponse(ctx context.Context, result interface{}) events.APIGatewayProxyResponse {
+	return wrapResponse(Response{
 		Result:        result,
-		RequestFailed: false,
 		RequestID:     requestID(ctx),
-	}
+	}, http.StatusOK)
 }
 
-func NewInternalServerError(ctx context.Context, ) Response {
-	return Response{
+func NewInternalServerError(ctx context.Context, ) events.APIGatewayProxyResponse {
+	return wrapResponse(Response{
 		Result:      "an internal server error has occurred",
-		FailureCode: "error",
 		RequestID:   requestID(ctx),
-	}
+	}, http.StatusInternalServerError)
 }
 
-func NewValidationFailureResponse(ctx context.Context, result ValidationError) Response {
-	return Response{
+func NewValidationFailureResponse(ctx context.Context, result ValidationError) events.APIGatewayProxyResponse {
+	return wrapResponse(Response{
 		Result:        result,
-		RequestFailed: true,
-		FailureCode:   "validation",
 		RequestID: requestID(ctx),
-	}
+	}, http.StatusBadRequest)
 }
 
 func requestID(ctx context.Context) string {
@@ -53,5 +50,16 @@ func requestID(ctx context.Context) string {
 		return awsCtx.AwsRequestID
 	} else {
 		return uuid.New().String()
+	}
+}
+
+func wrapResponse(r Response, statusCode int) events.APIGatewayProxyResponse {
+	body, err := json.Marshal(r)
+	if err != nil {
+		panic(err) // if we can't marshal our own stuff then were hosed
+	}
+	return events.APIGatewayProxyResponse{
+		StatusCode: statusCode,
+		Body: string(body),
 	}
 }

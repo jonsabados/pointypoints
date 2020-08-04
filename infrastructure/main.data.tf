@@ -12,22 +12,28 @@ data "aws_iam_policy_document" "assume_lambda_role_policy" {
   statement {
     actions = ["sts:AssumeRole"]
     principals {
-      identifiers = ["lambda.amazonaws.com"]
-      type        = "Service"
+      identifiers = [
+        "lambda.amazonaws.com"
+      ]
+
+      type = "Service"
     }
     effect  = "Allow"
     sid     = "AllowLambdaAssumeRole"
   }
 }
 
-data "aws_iam_policy_document" "assume_gateway_role_role_policy" {
+data "aws_iam_policy_document" "gateway_assume_role_policy" {
   statement {
     actions = ["sts:AssumeRole"]
     principals {
-      identifiers = ["apigateway.amazonaws.com"]
-      type        = "Service"
+      identifiers = [
+        "apigateway.amazonaws.com"
+      ]
+
+      type = "Service"
     }
     effect  = "Allow"
-    sid     = "AllowApiGatewayAssumeRole"
+    sid     = "AllowLambdaAssumeRole"
   }
 }

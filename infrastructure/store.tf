@@ -1,10 +1,10 @@
 resource "aws_dynamodb_table" "session_store" {
-  hash_key = "SessionId"
+  hash_key = "SessionID"
   name = "${local.workspace_prefix}Session"
   billing_mode = "PAY_PER_REQUEST"
 
   attribute {
-    name = "SessionId"
+    name = "SessionID"
     type = "S"
   }
 

@@ -6,7 +6,7 @@ WORKSPACE=`(cd ../infrastructure && terraform workspace show)`
 
 DOMAIN_PREFIX=""
 if [ $WORKSPACE != 'default' ]; then
-  DOMAIN_PREFIX="${$WORKSPACE}-"
+  DOMAIN_PREFIX="${WORKSPACE}-"
 fi
 
-echo "VUE_APP_API_BASE_URL=https://${DOMAIN_PREFIX}api.${DOMAIN}" >> .env.local
+echo "VUE_APP_POINTING_SOCKET_URL=wss://${DOMAIN_PREFIX}pointing.${DOMAIN}" >> .env.local
