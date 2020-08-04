@@ -30,6 +30,7 @@
 
 <script lang="ts">
 import { Vue, Component } from 'vue-property-decorator'
+import { PointingSessionStore } from '@/pointing/PointingSessionStore'
 
 @Component
 export default class NewSession extends Vue {
@@ -43,26 +44,13 @@ export default class NewSession extends Vue {
     const facilitatorName = this.facilitatorName
     const facilitatorHandle = this.facilitatorHandle
     const facilitatorParticipating = this.facilitatorParticipating
-    const socket = new WebSocket(`${process.env['VUE_APP_POINTING_SOCKET_URL']}/`)
-    socket.onopen = function() {
-      console.log('[open] Connection established')
-      console.log('Sending to server')
-      socket.send(JSON.stringify({
-        testing: 'one two three'
-      }))
-      socket.send(JSON.stringify({
-        action: 'newSession',
-        facilitator: {
-          name: facilitatorName,
-          handle: facilitatorHandle
-        },
-        facilitatorParticipating: facilitatorParticipating
-      }))
-      socket.onmessage = (ev) => {
-        console.log('receieved event')
-        console.log(ev)
-      }
-    }
+    this.$store.dispatch(PointingSessionStore.ACTION_BEGIN_SESSION, {
+      facilitator: {
+        name: facilitatorName,
+        handle: facilitatorHandle
+      },
+      facilitatorParticipating: facilitatorParticipating
+    })
   }
 
   get disableSubmit(): boolean {

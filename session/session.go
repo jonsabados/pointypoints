@@ -13,7 +13,7 @@ import (
 type User struct {
 	Name     string `json:"name,omitempty"`
 	Handle   string `json:"handle,omitempty"`
-	SocketID string
+	SocketID string `json:"-"`
 }
 
 type StartRequest struct {

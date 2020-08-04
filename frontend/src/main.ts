@@ -5,6 +5,7 @@ import Vuex from 'vuex'
 import VueRouter from 'vue-router'
 import Bootstrap from 'bootstrap-vue'
 import VueGtag from 'vue-gtag'
+import { PointingSessionStore } from '@/pointing/PointingSessionStore'
 
 Vue.config.productionTip = false
 Vue.use(Vuex)
@@ -26,6 +27,7 @@ Vue.use(VueGtag, {
 const store = new Vuex.Store<RootState>({
   state: {},
   modules: {
+    pointingSession: PointingSessionStore
   }
 })
 
