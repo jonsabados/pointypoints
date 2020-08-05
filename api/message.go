@@ -11,9 +11,10 @@ import (
 type MessageType string
 
 const (
-	SessionCreated = MessageType("SESSION_CREATED")
+	SessionCreated           = MessageType("SESSION_CREATED")
 	FacilitatorSessionLoaded = MessageType("FACILITATOR_SESSION_LOADED")
-	ErrorEncountered = MessageType("ERROR_ENCOUNTERED")
+	SessionLoaded            = MessageType("SESSION_LOADED")
+	ErrorEncountered         = MessageType("ERROR_ENCOUNTERED")
 )
 
 type Message struct {

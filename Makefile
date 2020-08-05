@@ -57,4 +57,10 @@ dist/loadFacilitatorSession: dist/ $(shell find . -iname "*.go")
 dist/loadFacilitatorSessionLambda.zip: dist/loadFacilitatorSession
 	cd dist && zip loadFacilitatorSessionLambda.zip loadFacilitatorSession
 
-build: frontend/dist/index.html dist/newSessionLambda.zip dist/connectLambda.zip dist/disconnectLambda.zip dist/loadFacilitatorSessionLambda.zip
+dist/loadSession: dist/ $(shell find . -iname "*.go")
+	GOOS=linux go build -o dist/loadSession github.com/jonsabados/pointypoints/session/loadsession
+
+dist/loadSessionLambda.zip: dist/loadSession
+	cd dist && zip loadSessionLambda.zip loadSession
+
+build: frontend/dist/index.html dist/newSessionLambda.zip dist/connectLambda.zip dist/disconnectLambda.zip dist/loadFacilitatorSessionLambda.zip dist/loadSessionLambda.zip

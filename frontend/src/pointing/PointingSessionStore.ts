@@ -3,10 +3,12 @@ import { AppStore } from '@/app/AppStore'
 
 const EVENT_TYPE_SESSION_CREATED = 'SESSION_CREATED'
 const FACILITATOR_SESSION_LOADED = 'FACILITATOR_SESSION_LOADED'
+const SESSION_LOADED = 'SESSION_LOADED'
 
 export interface User {
   name: string | null
   handle: string | null
+  currentVote?: number
 }
 
 export interface LoadFacilitatorSessionRequest {
@@ -17,7 +19,7 @@ export interface LoadFacilitatorSessionRequest {
 }
 
 export interface LoadSessionRequest {
-  action?: 'loadSessionRequest'
+  action?: 'loadSession'
   sessionId: string
   markActive: boolean
 }
@@ -31,6 +33,7 @@ export interface StartSessionRequest {
 export interface PointingSession {
   isFacilitator: boolean
   facilitatorSessionKey?: string
+  facilitatorPoints: boolean
   sessionId: string
   facilitator: User
   participants: Array<User>
@@ -60,13 +63,14 @@ function sendMessage(socket: WebSocket, message: any) {
   }
 }
 
-function convertFacilitatorSession(view: any):PointingSession {
+function convertFacilitatorSession(view: any): PointingSession {
   return {
     isFacilitator: true,
     facilitatorSessionKey: view.facilitatorSessionKey,
     sessionId: view.sessionId,
     facilitator: view.facilitator,
-    participants: view.participants
+    participants: view.participants,
+    facilitatorPoints: view.facilitatorPoints
   }
 }
 
@@ -76,6 +80,7 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
   static ACTION_BEGIN_SESSION = 'beginSession'
   static ACTION_END_SESSION = 'endSession'
   static ACTION_LOAD_FACILITATOR_SESSION = 'loadFacilitatorSession'
+  static ACTION_LOAD_SESSION = 'loadSession'
 
   static MUTATION_SET_ACTIVE_SESSION = 'setActiveSession'
   static MUTATION_END_SESSION = 'clearSession'
@@ -87,7 +92,7 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
 
   knownSessions: Array<PointingSession> = []
 
-  socket:WebSocket = new WebSocket(`${process.env['VUE_APP_POINTING_SOCKET_URL']}/`)
+  socket: WebSocket = new WebSocket(`${process.env['VUE_APP_POINTING_SOCKET_URL']}/`)
 
   @Mutation
   clearSession() {
@@ -133,6 +138,10 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
           }
           break
         }
+        case SESSION_LOADED: {
+          this.context.commit(PointingSessionStore.MUTATION_SESSION_ADDED, eventData.body)
+          break
+        }
         default:
           console.log('unknown event')
           console.log(eventData)
@@ -152,8 +161,8 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
   }
 
   @Action
-  loadUserSession(request: LoadSessionRequest) {
-    request.action = 'loadSessionRequest'
+  loadSession(request: LoadSessionRequest) {
+    request.action = 'loadSession'
     sendMessage(this.socket, request)
   }
 

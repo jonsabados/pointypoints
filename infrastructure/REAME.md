@@ -14,3 +14,11 @@ Ensure all of the lambda code has been built (execute `make` from the top level 
 ## Workspaces
 
 This project has been setup with workspace support, to spin up a workspace execute `terraform workspace new {whatever}` followed by `terraform apply`. Workspace creation is also subject to the certificate validation constraint so you will need to wait for certs to validate and then execute a second terraform apply.
+
+## Gotchas
+
+AWS stage deployment sucks. With V1 its possible to add variables to the deployment to force a deployment every time terraform runs, but alas this is not possible with the V2 api. So, if you add routes or anything execute:
+
+`terraform taint aws_apigatewayv2_deployment.pointing`
+
+and then apply to force a new deployment.

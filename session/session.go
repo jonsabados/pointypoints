@@ -11,9 +11,10 @@ import (
 )
 
 type User struct {
-	Name     string `json:"name,omitempty"`
-	Handle   string `json:"handle,omitempty"`
-	SocketID string `json:"-"`
+	Name        string `json:"name,omitempty"`
+	Handle      string `json:"handle,omitempty"`
+	CurrentVote *int   `json:"currentVote,omitempty"`
+	SocketID    string `json:"-"`
 }
 
 type StartRequest struct {
@@ -27,6 +28,10 @@ type LoadFacilitatorSessionRequest struct {
 	MarkActive            bool   `json:"markActive"`
 }
 
+type LoadSessionRequest struct {
+	SessionID string `json:"sessionId"`
+}
+
 type FacilitatorSessionVew struct {
 	SessionID             string `json:"sessionId"`
 	FacilitatorSessionKey string `json:"facilitatorSessionKey,omitempty"`
@@ -36,9 +41,33 @@ type FacilitatorSessionVew struct {
 }
 
 type ParticipantSessionView struct {
+	SessionID         string `json:"sessionId"`
 	Facilitator       User   `json:"facilitator"`
 	FacilitatorPoints bool   `json:"facilitatorPoints"`
 	Participants      []User `json:"participants"`
+}
+
+func ToParticipantView(s FacilitatorSessionVew) ParticipantSessionView {
+	participants := make([]User, len(s.Participants))
+	for i, u := range s.Participants {
+		participants[i] = ParticipantUserView(u)
+	}
+	return ParticipantSessionView{
+		SessionID:         s.SessionID,
+		Facilitator:       ParticipantUserView(s.Facilitator),
+		FacilitatorPoints: s.FacilitatorPoints,
+		Participants:      participants,
+	}
+}
+
+func ParticipantUserView(u User) User {
+	ret := User{
+		Handle: u.Handle,
+	}
+	if u.Handle == "" {
+		ret.Name = u.Name
+	}
+	return ret
 }
 
 type Starter func(ctx context.Context, toStart StartRequest) (FacilitatorSessionVew, error)
@@ -103,15 +132,27 @@ func NewLoader(dynamo *dynamodb.DynamoDB, tableName string) Loader {
 }
 
 func convertUser(u User) map[string]*dynamodb.AttributeValue {
-	return map[string]*dynamodb.AttributeValue{
+	ret := map[string]*dynamodb.AttributeValue{
 		"Name":   {S: aws.String(u.Name)},
 		"Handle": {S: aws.String(u.Handle)},
 	}
+	if u.CurrentVote != nil {
+		ret["CurrentVote"] = &dynamodb.AttributeValue{N: aws.String(strconv.Itoa(*u.CurrentVote))}
+	}
+	return ret
 }
 
 func readUser(r map[string]*dynamodb.AttributeValue) User {
-	return User{
+	ret := User{
 		Name:   *r["Name"].S,
 		Handle: *r["Handle"].S,
 	}
+	if r["CurrentVote"] != nil {
+		val, err := strconv.Atoi(*r["CurrentVote"].N)
+		if err != nil {
+			panic(err)
+		}
+		ret.CurrentVote = &val
+	}
+	return ret
 }

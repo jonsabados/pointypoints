@@ -21,7 +21,7 @@ const routes = [
     component: NewSession
   },
   {
-    path: '/session/:id',
+    path: '/session/:sessionId',
     name: SESSION_ROUTE_NAME,
     component: Session
   },

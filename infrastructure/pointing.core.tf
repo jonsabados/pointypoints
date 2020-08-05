@@ -79,10 +79,15 @@ resource "aws_apigatewayv2_deployment" "pointing" {
   depends_on = [
     aws_apigatewayv2_integration.newSession_integration,
     aws_apigatewayv2_integration.disconnect_integration,
-    aws_apigatewayv2_integration.connect_integration
+    aws_apigatewayv2_integration.connect_integration,
+    aws_apigatewayv2_integration.loadFacilitatorSession_integration
   ]
 
   api_id = aws_apigatewayv2_api.pointing.id
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_apigatewayv2_stage" "pointing_stage" {
