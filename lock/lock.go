@@ -77,6 +77,24 @@ func NewGlobalLockAppropriator(dynamo *dynamodb.DynamoDB, tableName string, retr
 	}
 }
 
+func (a GlobalLockAppropriator) DoWithLock(ctx context.Context, lockID string, action func(ctx context.Context) error) error {
+	lock, err := a(ctx, lockID)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+	defer func() {
+		err := lock.Unlock(ctx)
+		if err != nil {
+			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("unable to release lock")
+		}
+	}()
+	return errors.WithStack(action(ctx))
+}
+
 func SessionLockKey(sessionID string) string {
 	return fmt.Sprintf("session:%s", sessionID)
+}
+
+func SessionInterestLockKey(sessionID string) string {
+	return fmt.Sprintf("sessionInterest:%s", sessionID)
 }

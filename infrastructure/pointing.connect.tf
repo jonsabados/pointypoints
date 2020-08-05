@@ -94,5 +94,5 @@ resource "aws_lambda_permission" "connect_allow_gateway_invoke" {
   function_name = aws_lambda_function.connect_lambda.function_name
   principal     = "apigateway.amazonaws.com"
 
-  source_arn = "arn:aws:execute-api:us-east-1:${data.aws_caller_identity.current.account_id}:${aws_apigatewayv2_api.pointing.id}/*/$connect"
+  source_arn = "arn:aws:execute-api:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${aws_apigatewayv2_api.pointing.id}/*/$connect"
 }

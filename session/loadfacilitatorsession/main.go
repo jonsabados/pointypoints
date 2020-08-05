@@ -12,10 +12,12 @@ import (
 	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/jonsabados/pointypoints/api"
 	"github.com/jonsabados/pointypoints/diutil"
+	"github.com/jonsabados/pointypoints/lock"
 	"github.com/jonsabados/pointypoints/logging"
 	"github.com/jonsabados/pointypoints/session"
 	"github.com/rs/zerolog"
 	"os"
+	"time"
 )
 
 type LoadResponse struct {
@@ -23,7 +25,7 @@ type LoadResponse struct {
 	MarkActive bool                          `json:"markActive"`
 }
 
-func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, dispatch api.MessageDispatcher) func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
+func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, dispatch api.MessageDispatcher, recordInterest session.InterestRecorder) func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
 		ctx = prepareLogs(ctx)
 		l := new(session.LoadFacilitatorSessionRequest)
@@ -43,6 +45,11 @@ func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, dispat
 		if sess.FacilitatorSessionKey != l.FacilitatorSessionKey {
 			zerolog.Ctx(ctx).Warn().Msg("attempt to load session as facilitator with invalid facilitator key")
 			return api.NewPermissionDeniedResponse(ctx), nil
+		}
+		err = recordInterest(ctx, sess.SessionID, request.RequestContext.ConnectionID)
+		if err != nil {
+			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error recording interest")
+			return api.NewInternalServerError(ctx), nil
 		}
 		err = dispatch(ctx, request.RequestContext.ConnectionID, api.Message{
 			Type: api.FacilitatorSessionLoaded,
@@ -77,5 +84,12 @@ func main() {
 	sessionTable := os.Getenv("SESSION_TABLE")
 	loader := session.NewLoader(dynamo, sessionTable)
 
-	lambda.Start(NewHandler(logPreparer, loader, diutil.NewProdMessageDispatcher()))
+	lockTable := os.Getenv("LOCK_TABLE")
+	locker := lock.NewGlobalLockAppropriator(dynamo, lockTable, time.Millisecond*5, time.Second)
+
+	interestTable := os.Getenv("INTEREST_TABLE")
+	watcherTable := os.Getenv("WATCHER_TABLE")
+	interestRecorder := session.NewInterestRecorder(dynamo, interestTable, watcherTable, locker, time.Hour)
+
+	lambda.Start(NewHandler(logPreparer, loader, diutil.NewProdMessageDispatcher(), interestRecorder))
 }

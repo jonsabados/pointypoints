@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/jonsabados/pointypoints/api"
 	"github.com/jonsabados/pointypoints/diutil"
+	"github.com/jonsabados/pointypoints/lock"
 	"github.com/jonsabados/pointypoints/logging"
 	"github.com/jonsabados/pointypoints/session"
 	"github.com/rs/zerolog"
@@ -19,7 +20,7 @@ import (
 	"time"
 )
 
-func NewHandler(prepareLogs logging.Preparer, startSession session.Starter, dispatch api.MessageDispatcher) func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
+func NewHandler(prepareLogs logging.Preparer, startSession session.Starter, dispatch api.MessageDispatcher, recordInterest session.InterestRecorder) func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
 		ctx = prepareLogs(ctx)
 		toStart := new(session.StartRequest)
@@ -45,6 +46,11 @@ func NewHandler(prepareLogs logging.Preparer, startSession session.Starter, disp
 			if err != nil {
 				zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error dispatching message")
 			}
+			return api.NewInternalServerError(ctx), nil
+		}
+		err = recordInterest(ctx, sess.SessionID, request.RequestContext.ConnectionID)
+		if err != nil {
+			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error recording interest")
 			return api.NewInternalServerError(ctx), nil
 		}
 		err = dispatch(ctx, request.RequestContext.ConnectionID, api.Message{
@@ -76,5 +82,12 @@ func main() {
 	sessionTable := os.Getenv("SESSION_TABLE")
 	starter := session.NewStarter(dynamo, sessionTable, time.Hour)
 
-	lambda.Start(NewHandler(logPreparer, starter, diutil.NewProdMessageDispatcher()))
+	lockTable := os.Getenv("LOCK_TABLE")
+	locker := lock.NewGlobalLockAppropriator(dynamo, lockTable, time.Millisecond*5, time.Second)
+
+	interestTable := os.Getenv("INTEREST_TABLE")
+	watcherTable := os.Getenv("WATCHER_TABLE")
+	interestRecorder := session.NewInterestRecorder(dynamo, interestTable, watcherTable, locker, time.Hour)
+
+	lambda.Start(NewHandler(logPreparer, starter, diutil.NewProdMessageDispatcher(), interestRecorder))
 }

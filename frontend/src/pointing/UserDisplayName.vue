@@ -9,11 +9,10 @@ import { User } from '@/pointing/PointingSessionStore'
 
 @Component({
   props: {
-    user: User
+    user: Object
   }
 })
 export default class UserDisplayName extends Vue {
-  @Prop
   user: User | undefined
 
   get hasHandle() {

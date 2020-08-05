@@ -41,6 +41,36 @@ data "aws_iam_policy_document" "loadSession_lambda_policy" {
   }
 
   statement {
+    sid       = "AllowRecordInterest"
+    effect    = "Allow"
+    actions   = [
+      "dynamodb:PutItem",
+      "dynamodb:GetItem",
+      "dynamodb:DescribeStream",
+      "dynamodb:DescribeTable"
+    ]
+    resources = [
+      "arn:aws:dynamodb:*:*:table/${aws_dynamodb_table.session_interest_store.name}",
+      "arn:aws:dynamodb:*:*:table/${aws_dynamodb_table.session_watcher_store.name}"
+    ]
+  }
+
+  statement {
+    sid       = "AllowLock"
+    effect    = "Allow"
+    actions   = [
+      "dynamodb:PutItem",
+      "dynamodb:GetItem",
+      "dynamodb:DeleteItem",
+      "dynamodb:DescribeStream",
+      "dynamodb:DescribeTable"
+    ]
+    resources = [
+      "arn:aws:dynamodb:*:*:table/${aws_dynamodb_table.global_locks.name}"
+    ]
+  }
+
+  statement {
     sid       = "AllowMessages"
     effect    = "Allow"
     actions   = [
@@ -80,9 +110,12 @@ resource "aws_lambda_function" "loadSession_lambda" {
 
   environment {
     variables = {
-      REGION           = "us-east-1"
+      REGION           = var.aws_region
       GATEWAY_ENDPOINT = "https://${aws_apigatewayv2_api.pointing.id}.execute-api.${var.aws_region}.amazonaws.com/${local.workspace_prefix}pointing-main/"
       SESSION_TABLE    = aws_dynamodb_table.session_store.name
+      INTEREST_TABLE   = aws_dynamodb_table.session_interest_store.name
+      WATCHER_TABLE    = aws_dynamodb_table.session_watcher_store.name
+      LOCK_TABLE       = aws_dynamodb_table.global_locks.name
       LOG_LEVEL        = "info"
     }
   }
@@ -120,5 +153,5 @@ resource "aws_lambda_permission" "loadSession_allow_gateway_invoke" {
   function_name = aws_lambda_function.loadSession_lambda.function_name
   principal     = "apigateway.amazonaws.com"
 
-  source_arn = "arn:aws:execute-api:us-east-1:${data.aws_caller_identity.current.account_id}:${aws_apigatewayv2_api.pointing.id}/*/loadSession"
+  source_arn = "arn:aws:execute-api:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${aws_apigatewayv2_api.pointing.id}/*/loadSession"
 }
