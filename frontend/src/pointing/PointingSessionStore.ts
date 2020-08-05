@@ -4,11 +4,18 @@ import { AppStore } from '@/app/AppStore'
 const EVENT_TYPE_SESSION_CREATED = 'SESSION_CREATED'
 const FACILITATOR_SESSION_LOADED = 'FACILITATOR_SESSION_LOADED'
 const SESSION_LOADED = 'SESSION_LOADED'
+const SESSION_UPDATED = 'SESSION_UPDATED'
 
 export interface User {
   name: string | null
   handle: string | null
   currentVote?: number
+}
+
+export interface JoinSessionRequest {
+  action?: 'joinSession'
+  sessionId: string
+  user: User
 }
 
 export interface LoadFacilitatorSessionRequest {
@@ -81,13 +88,16 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
   static ACTION_END_SESSION = 'endSession'
   static ACTION_LOAD_FACILITATOR_SESSION = 'loadFacilitatorSession'
   static ACTION_LOAD_SESSION = 'loadSession'
+  static ACTION_JOIN_SESSION = 'joinSession'
 
   static MUTATION_SET_ACTIVE_SESSION = 'setActiveSession'
   static MUTATION_END_SESSION = 'clearSession'
   static MUTATION_SESSION_ADDED = 'sessionAdded'
+  static MUTATION_SET_SESSIONS = 'setSessions'
 
   sessionActive: boolean = false
 
+  // this sucks and needs to go away but no time to do it cleanly - its the facilitator session
   currentSession: PointingSession | undefined
 
   knownSessions: Array<PointingSession> = []
@@ -111,6 +121,20 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
     this.knownSessions.push(session)
   }
 
+  @Mutation
+  setSessions(sessions: Array<PointingSession>) {
+    this.knownSessions = sessions
+    if (this.currentSession) {
+      sessions.forEach((s) => {
+        if (this.currentSession && s.sessionId === this.currentSession.sessionId) {
+          // this sucks but there is something with updates not being seen that I don't understand currently and don't have time to figure out
+          console.log('setting current session participants')
+          this.currentSession.participants = s.participants
+        }
+      })
+    }
+  }
+
   @Action
   initialize() {
     this.socket.onerror = (ev) => {
@@ -118,6 +142,7 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
     }
     this.socket.onmessage = (ev) => {
       const eventData = JSON.parse(ev.data)
+      console.log(eventData)
       if (!eventData.type) {
         console.log('event does not match expected interface')
         console.log(eventData)
@@ -140,6 +165,18 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
         }
         case SESSION_LOADED: {
           this.context.commit(PointingSessionStore.MUTATION_SESSION_ADDED, eventData.body)
+          break
+        }
+        case SESSION_UPDATED: {
+          const newSessions: PointingSession[] = []
+          this.knownSessions.forEach((s) => {
+            if (s.sessionId === eventData.body.sessionId) {
+              newSessions.push(eventData.body)
+            } else {
+              newSessions.push(s)
+            }
+          })
+          this.context.commit(PointingSessionStore.MUTATION_SET_SESSIONS, newSessions)
           break
         }
         default:
@@ -169,6 +206,12 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
   @Action
   beginSession(request: StartSessionRequest) {
     request.action = 'newSession'
+    this.socket.send(JSON.stringify(request))
+  }
+
+  @Action
+  joinSession(request: JoinSessionRequest) {
+    request.action = 'joinSession'
     this.socket.send(JSON.stringify(request))
   }
 
