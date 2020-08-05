@@ -8,10 +8,10 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	awssession "github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/apigatewaymanagementapi"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/jonsabados/pointypoints/api"
+	"github.com/jonsabados/pointypoints/diutil"
 	"github.com/jonsabados/pointypoints/logging"
 	"github.com/jonsabados/pointypoints/session"
 	"github.com/rs/zerolog"
@@ -76,16 +76,5 @@ func main() {
 	sessionTable := os.Getenv("SESSION_TABLE")
 	starter := session.NewStarter(dynamo, sessionTable, time.Hour)
 
-	gatewaysession, err := awssession.NewSession(&aws.Config{
-		Region:      aws.String(os.Getenv("REGION")),
-		Endpoint:    aws.String(os.Getenv("GATEWAY_ENDPOINT")),
-	})
-	if err != nil {
-		panic(err)
-	}
-	gateway := apigatewaymanagementapi.New(gatewaysession)
-	xray.AWS(gateway.Client)
-	dispatcher := api.NewMessageDispatcher(gateway)
-
-	lambda.Start(NewHandler(logPreparer, starter, dispatcher))
+	lambda.Start(NewHandler(logPreparer, starter, diutil.NewProdMessageDispatcher()))
 }

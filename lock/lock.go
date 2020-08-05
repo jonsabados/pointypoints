@@ -2,6 +2,7 @@ package lock
 
 import (
 	"context"
+	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/google/uuid"
@@ -74,4 +75,8 @@ func NewGlobalLockAppropriator(dynamo *dynamodb.DynamoDB, tableName string, retr
 			tableName:  tableName,
 		}, nil
 	}
+}
+
+func SessionLockKey(sessionID string) string {
+	return fmt.Sprintf("session:%s", sessionID)
 }

@@ -6,6 +6,7 @@ import VueRouter from 'vue-router'
 import Bootstrap from 'bootstrap-vue'
 import VueGtag from 'vue-gtag'
 import { PointingSessionStore } from '@/pointing/PointingSessionStore'
+import { AppStore } from '@/app/AppStore'
 
 Vue.config.productionTip = false
 Vue.use(Vuex)
@@ -27,6 +28,7 @@ Vue.use(VueGtag, {
 const store = new Vuex.Store<RootState>({
   state: {},
   modules: {
+    app: AppStore,
     pointingSession: PointingSessionStore
   }
 })

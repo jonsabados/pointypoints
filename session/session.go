@@ -21,12 +21,24 @@ type StartRequest struct {
 	FacilitatorPoints bool `json:"facilitatorPoints"`
 }
 
+type LoadFacilitatorSessionRequest struct {
+	SessionID             string `json:"sessionId"`
+	FacilitatorSessionKey string `json:"facilitatorSessionKey"`
+	MarkActive            bool   `json:"markActive"`
+}
+
 type FacilitatorSessionVew struct {
 	SessionID             string `json:"sessionId"`
 	FacilitatorSessionKey string `json:"facilitatorSessionKey,omitempty"`
 	Facilitator           User   `json:"facilitator"`
 	FacilitatorPoints     bool   `json:"facilitatorPoints"`
 	Participants          []User `json:"participants"`
+}
+
+type ParticipantSessionView struct {
+	Facilitator       User   `json:"facilitator"`
+	FacilitatorPoints bool   `json:"facilitatorPoints"`
+	Participants      []User `json:"participants"`
 }
 
 type Starter func(ctx context.Context, toStart StartRequest) (FacilitatorSessionVew, error)
@@ -59,9 +71,47 @@ func NewStarter(dynamo *dynamodb.DynamoDB, tableName string, sessionExpiration t
 	}
 }
 
+type Loader func(ctx context.Context, sessionID string) (*FacilitatorSessionVew, error)
+
+func NewLoader(dynamo *dynamodb.DynamoDB, tableName string) Loader {
+	return func(ctx context.Context, sessionID string) (*FacilitatorSessionVew, error) {
+		res, err := dynamo.GetItemWithContext(ctx, &dynamodb.GetItemInput{
+			TableName: aws.String(tableName),
+			Key: map[string]*dynamodb.AttributeValue{
+				"SessionID": {S: aws.String(sessionID)},
+			},
+		})
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		if res.Item["SessionID"].S == nil {
+			return nil, nil
+		}
+		rawParticipants := res.Item["Participants"].L
+		participants := make([]User, len(rawParticipants))
+		for i, r := range rawParticipants {
+			participants[i] = readUser(r.M)
+		}
+		return &FacilitatorSessionVew{
+			SessionID:             *res.Item["SessionID"].S,
+			FacilitatorSessionKey: *res.Item["FacilitatorSessionKey"].S,
+			Facilitator:           readUser(res.Item["Facilitator"].M),
+			FacilitatorPoints:     *res.Item["FacilitatorPoints"].BOOL,
+			Participants:          participants,
+		}, nil
+	}
+}
+
 func convertUser(u User) map[string]*dynamodb.AttributeValue {
 	return map[string]*dynamodb.AttributeValue{
 		"Name":   {S: aws.String(u.Name)},
 		"Handle": {S: aws.String(u.Handle)},
+	}
+}
+
+func readUser(r map[string]*dynamodb.AttributeValue) User {
+	return User{
+		Name:   *r["Name"].S,
+		Handle: *r["Handle"].S,
 	}
 }

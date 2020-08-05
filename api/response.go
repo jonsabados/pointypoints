@@ -45,6 +45,13 @@ func NewValidationFailureResponse(ctx context.Context, result ValidationError) e
 	}, http.StatusBadRequest)
 }
 
+func NewPermissionDeniedResponse(ctx context.Context) events.APIGatewayProxyResponse {
+	return wrapResponse(Response{
+		Result:        "permission denied",
+		RequestID: requestID(ctx),
+	}, http.StatusForbidden)
+}
+
 func requestID(ctx context.Context) string {
 	if awsCtx, inLambda := lambdacontext.FromContext(ctx); inLambda {
 		return awsCtx.AwsRequestID

@@ -12,6 +12,7 @@ type MessageType string
 
 const (
 	SessionCreated = MessageType("SESSION_CREATED")
+	FacilitatorSessionLoaded = MessageType("FACILITATOR_SESSION_LOADED")
 	ErrorEncountered = MessageType("ERROR_ENCOUNTERED")
 )
 
