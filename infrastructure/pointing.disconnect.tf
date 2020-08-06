@@ -26,6 +26,61 @@ data "aws_iam_policy_document" "disconnect_lambda_policy" {
       "*"
     ]
   }
+
+  statement {
+    sid       = "AllowSessionAccess"
+    effect    = "Allow"
+    actions   = [
+      "dynamodb:GetItem",
+      "dynamodb:PutItem",
+      "dynamodb:DescribeStream",
+      "dynamodb:DescribeTable"
+    ]
+    resources = [
+      "arn:aws:dynamodb:*:*:table/${aws_dynamodb_table.session_store.name}"
+    ]
+  }
+
+  statement {
+    sid       = "AllowReadAndRecordInterest"
+    effect    = "Allow"
+    actions   = [
+      "dynamodb:PutItem",
+      "dynamodb:GetItem",
+      "dynamodb:DescribeStream",
+      "dynamodb:DescribeTable"
+    ]
+    resources = [
+      "arn:aws:dynamodb:*:*:table/${aws_dynamodb_table.session_interest_store.name}",
+      "arn:aws:dynamodb:*:*:table/${aws_dynamodb_table.session_watcher_store.name}"
+    ]
+  }
+
+  statement {
+    sid       = "AllowLock"
+    effect    = "Allow"
+    actions   = [
+      "dynamodb:PutItem",
+      "dynamodb:GetItem",
+      "dynamodb:DeleteItem",
+      "dynamodb:DescribeStream",
+      "dynamodb:DescribeTable"
+    ]
+    resources = [
+      "arn:aws:dynamodb:*:*:table/${aws_dynamodb_table.global_locks.name}"
+    ]
+  }
+
+  statement {
+    sid       = "AllowMessages"
+    effect    = "Allow"
+    actions   = [
+      "execute-api:ManageConnections"
+    ]
+    resources = [
+      "arn:aws:execute-api:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${aws_apigatewayv2_api.pointing.id}/*"
+    ]
+  }
 }
 
 resource "aws_iam_role" "disconnect_lambda_role" {
@@ -56,7 +111,13 @@ resource "aws_lambda_function" "disconnect_lambda" {
 
   environment {
     variables = {
-      LOG_LEVEL = "info"
+      REGION           = var.aws_region
+      GATEWAY_ENDPOINT = "https://${aws_apigatewayv2_api.pointing.id}.execute-api.${var.aws_region}.amazonaws.com/${local.workspace_prefix}pointing-main/"
+      SESSION_TABLE    = aws_dynamodb_table.session_store.name
+      WATCHER_TABLE    = aws_dynamodb_table.session_watcher_store.name
+      INTEREST_TABLE   = aws_dynamodb_table.session_interest_store.name
+      LOCK_TABLE       = aws_dynamodb_table.global_locks.name
+      LOG_LEVEL        = "debug"
     }
   }
 
@@ -76,7 +137,7 @@ resource "aws_apigatewayv2_integration" "disconnect_integration" {
 
   description               = "Disconnect Lambda Integration"
   integration_method        = "POST"
-  integration_uri           = aws_lambda_function.connect_lambda.invoke_arn
+  integration_uri           = aws_lambda_function.disconnect_lambda.invoke_arn
   content_handling_strategy = "CONVERT_TO_TEXT"
   request_templates         = {}
 }

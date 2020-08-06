@@ -28,6 +28,7 @@
             </td>
           </tr>
         </table>
+        <p>Additional team members may join by going to the following URL: <strong>{{ userURL }}</strong></p>
       </div>
     </div>
     <div v-else>

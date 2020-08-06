@@ -42,6 +42,49 @@ func NewChangeNotifier(dynamo *dynamodb.DynamoDB, watcherTable string, dispatchM
 	}
 }
 
+type Disconnector func(ctx context.Context, connectionID string) error
+
+func NewDisconnector(dynamo *dynamodb.DynamoDB, tableName string, locker lock.GlobalLockAppropriator, loadSession Loader, saveSession Saver) Disconnector {
+	return func(ctx context.Context, connectionID string) error {
+		rec, err := dynamo.GetItemWithContext(ctx, &dynamodb.GetItemInput{
+			TableName: aws.String(tableName),
+			Key: map[string]*dynamodb.AttributeValue{
+				"ConnectionID": {S: aws.String(connectionID)},
+			},
+		})
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		if rec.Item["ConnectionID"] == nil {
+			zerolog.Ctx(ctx).Debug().Str("connectionID", connectionID).Msg("no records found for connection")
+			return nil
+		}
+		for _, r := range rec.Item["Sessions"].L {
+			sessionID := *r.S
+			err := locker.DoWithLock(ctx, lock.SessionLockKey(sessionID), func(ctx context.Context) error {
+				sess, err := loadSession(ctx, sessionID)
+				if err != nil {
+					return errors.WithStack(err)
+				}
+				newUsers := make([]User, 0)
+				for _, u := range sess.Participants {
+					if u.SocketID != connectionID {
+						newUsers = append(newUsers, u)
+					} else {
+						zerolog.Ctx(ctx).Debug().Str("socketID", u.SocketID).Str("session", sess.SessionID).Msg("removing user from session")
+					}
+				}
+				sess.Participants = newUsers
+				return errors.WithStack(saveSession(ctx, *sess))
+			})
+			if err != nil {
+				return errors.WithStack(err)
+			}
+		}
+		return nil
+ 	}
+}
+
 type InterestRecorder func(ctx context.Context, sessionID string, connectionID string) error
 
 func NewInterestRecorder(dynamo *dynamodb.DynamoDB, sessionTable string, watcherTable string, locker lock.GlobalLockAppropriator, sessionExpiration time.Duration) InterestRecorder {

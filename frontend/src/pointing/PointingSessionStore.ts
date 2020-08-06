@@ -127,7 +127,7 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
     if (this.currentSession) {
       sessions.forEach((s) => {
         if (this.currentSession && s.sessionId === this.currentSession.sessionId) {
-          // this sucks but there is something with updates not being seen that I don't understand currently and don't have time to figure out
+          // this also sucks but there is something with updates not being seen that I don't understand currently and don't have time to figure out
           console.log('setting current session participants')
           this.currentSession.participants = s.participants
         }
