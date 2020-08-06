@@ -6,18 +6,12 @@ import (
 	"fmt"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go/aws"
-	awssession "github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/jonsabados/pointypoints/api"
-	"github.com/jonsabados/pointypoints/diutil"
+	"github.com/jonsabados/pointypoints/lambdautil"
 	"github.com/jonsabados/pointypoints/lock"
 	"github.com/jonsabados/pointypoints/logging"
 	"github.com/jonsabados/pointypoints/session"
 	"github.com/rs/zerolog"
-	"os"
-	"time"
 )
 
 func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, recordInterest session.InterestRecorder, dispatch api.MessageDispatcher) func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -55,30 +49,16 @@ func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, record
 }
 
 func main() {
-	err := xray.Configure(xray.Config{
-		LogLevel: "warn",
-	})
-	if err != nil {
-		panic(err)
-	}
+	lambdautil.CoreStartup()
 
 	logPreparer := logging.NewPreparer()
-	sess, err := awssession.NewSession(&aws.Config{})
-	if err != nil {
-		panic(err)
-	}
-	dynamo := dynamodb.New(sess)
-	xray.AWS(dynamo.Client)
+	sess := lambdautil.DefaultAWSConfig()
 
-	sessionTable := os.Getenv("SESSION_TABLE")
-	loader := session.NewLoader(dynamo, sessionTable)
+	dynamo := lambdautil.NewDynamoClient(sess)
+	loader := session.NewLoader(dynamo, lambdautil.SessionTable)
+	locker := lock.NewGlobalLockAppropriator(dynamo, lambdautil.LockTable, lambdautil.LockWaitTime, lambdautil.LockTimeout)
+	dispatcher := lambdautil.NewProdMessageDispatcher()
+	interestRecorder := session.NewInterestRecorder(dynamo, lambdautil.InterestTable, lambdautil.WatcherTable, locker, lambdautil.SessionTimeout)
 
-	lockTable := os.Getenv("LOCK_TABLE")
-	locker := lock.NewGlobalLockAppropriator(dynamo, lockTable, time.Millisecond*5, time.Second)
-
-	interestTable := os.Getenv("INTEREST_TABLE")
-	watcherTable := os.Getenv("WATCHER_TABLE")
-	interestRecorder := session.NewInterestRecorder(dynamo, interestTable, watcherTable, locker, time.Hour)
-
-	lambda.Start(NewHandler(logPreparer, loader, interestRecorder, diutil.NewProdMessageDispatcher()))
+	lambda.Start(NewHandler(logPreparer, loader, interestRecorder, dispatcher))
 }

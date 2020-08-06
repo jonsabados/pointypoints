@@ -4,8 +4,8 @@ import (
 	"context"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-xray-sdk-go/xray"
 	"github.com/jonsabados/pointypoints/api"
+	"github.com/jonsabados/pointypoints/lambdautil"
 	"github.com/jonsabados/pointypoints/logging"
 	"github.com/rs/zerolog"
 )
@@ -14,17 +14,12 @@ func NewHandler(prepareLogs logging.Preparer) func(ctx context.Context, request 
 	return func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
 		ctx = prepareLogs(ctx)
 		zerolog.Ctx(ctx).Info().Interface("request", request).Msg("connect called")
-		return api.NewSuccessResponse(ctx, "whatever"), nil
+		return api.NewSuccessResponse(ctx, "OK"), nil
 	}
 }
 
 func main() {
-	err := xray.Configure(xray.Config{
-		LogLevel: "warn",
-	})
-	if err != nil {
-		panic(err)
-	}
+	lambdautil.CoreStartup()
 
 	logPreparer := logging.NewPreparer()
 
