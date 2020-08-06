@@ -77,14 +77,15 @@ resource "aws_apigatewayv2_api" "pointing" {
 
 resource "aws_apigatewayv2_deployment" "pointing" {
   depends_on = [
-    aws_apigatewayv2_integration.newSession_integration,
-    aws_apigatewayv2_integration.disconnect_integration,
-    aws_apigatewayv2_integration.connect_integration,
-    aws_apigatewayv2_integration.loadFacilitatorSession_integration,
-    aws_apigatewayv2_integration.loadSession_integration,
-    aws_apigatewayv2_integration.vote_integration,
-    aws_apigatewayv2_integration.showVotes_integration,
-    aws_apigatewayv2_integration.clearVotes_integration
+    module.connect_lambda,
+    module.disconnect_lambda,
+    module.newSession_lambda,
+    module.loadFacilitatorSession_lambda,
+    module.loadSession_lambda,
+    module.joinSession_lambda,
+    module.vote_lambda,
+    module.showVotes_lambda,
+    module.clearVotes_lambda
   ]
 
   api_id = aws_apigatewayv2_api.pointing.id
@@ -98,13 +99,15 @@ resource "aws_apigatewayv2_stage" "pointing_stage" {
   api_id        = aws_apigatewayv2_api.pointing.id
   name          = "${local.workspace_prefix}pointing-main"
   deployment_id = aws_apigatewayv2_deployment.pointing.id
+
   access_log_settings {
     destination_arn = aws_cloudwatch_log_group.gateway_logs.arn
     format          = "{ \"requestId\":\"$context.requestId\",\"ip\": \"$context.identity.sourceIp\", \"caller\":\"$context.identity.caller\", \"user\":\"$context.identity.user\", \"requestTime\":\"$context.requestTime\", \"httpMethod\":\"$context.httpMethod\", \"resourcePath\":\"$context.resourcePath\", \"status\":\"$context.status\", \"protocol\":\"$context.protocol\", \"responseLength\":\"$context.responseLength\" }"
   }
+
   default_route_settings {
     data_trace_enabled     = true
-    logging_level          = "INFO"
+    logging_level          = "ERROR"
     throttling_burst_limit = 5000
     throttling_rate_limit  = 10000
   }
