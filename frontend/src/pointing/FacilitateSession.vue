@@ -39,6 +39,16 @@
             </tr>
           </tbody>
         </table>
+        <div v-if="waitingVotesShown || waitingClearVotes">
+          <loading />
+        </div>
+        <div v-else-if="!votesShown">
+          {{ votedCount }} out of {{ currentUsers.length }} participants have voted.
+          <button class="btn btn-primary" :disabled="votedCount === 0" v-on:click="showVotes">Show Votes</button>
+        </div>
+        <div v-else>
+          <button class="btn btn-primary" v-on:click="clearVotes">Clear Votes</button>
+        </div>
         <p>Additional team members may join by going to the following URL: <strong>{{ userURL }}</strong></p>
       </div>
     </div>
@@ -58,12 +68,29 @@ import { User } from '@/user/user'
   components: { Loading }
 })
 export default class Session extends Vue {
+  votesShownClicked = false
+  clearVotesClicked = false
+
+  get waitingVotesShown(): boolean {
+    return this.votesShownClicked && !this.votesShown
+  }
+
+  get waitingClearVotes(): boolean {
+    return this.clearVotesClicked && this.votesShown
+  }
+
   get teamEmpty(): boolean {
     return this.$store.state.pointingSession.currentSession.participants.length === 0
   }
 
   get currentUsers(): Array<User> {
     return this.$store.state.pointingSession.currentSession.participants
+  }
+
+  get votedCount(): number {
+    return this.currentUsers.filter((u) => {
+      return u.currentVote && u.currentVote !== ''
+    }).length
   }
 
   get isSessionReady(): boolean {
@@ -84,6 +111,22 @@ export default class Session extends Vue {
 
   mounted() {
     this.routeParamsChanged()
+  }
+
+  showVotes() {
+    this.clearVotesClicked = false
+    this.votesShownClicked = true
+    const sessionId = this.$route.params.sessionId
+    const facilitatorSessionKey = this.$route.params.facilitatorSessionKey
+    this.$store.dispatch(PointingSessionStore.ACTION_SHOW_VOTES, { sessionId, facilitatorSessionKey })
+  }
+
+  clearVotes() {
+    this.clearVotesClicked = true
+    this.votesShownClicked = false
+    const sessionId = this.$route.params.sessionId
+    const facilitatorSessionKey = this.$route.params.facilitatorSessionKey
+    this.$store.dispatch(PointingSessionStore.ACTION_CLEAR_VOTES, { sessionId, facilitatorSessionKey })
   }
 
   @Watch('$route')

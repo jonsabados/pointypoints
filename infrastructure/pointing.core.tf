@@ -80,7 +80,11 @@ resource "aws_apigatewayv2_deployment" "pointing" {
     aws_apigatewayv2_integration.newSession_integration,
     aws_apigatewayv2_integration.disconnect_integration,
     aws_apigatewayv2_integration.connect_integration,
-    aws_apigatewayv2_integration.loadFacilitatorSession_integration
+    aws_apigatewayv2_integration.loadFacilitatorSession_integration,
+    aws_apigatewayv2_integration.loadSession_integration,
+    aws_apigatewayv2_integration.vote_integration,
+    aws_apigatewayv2_integration.showVotes_integration,
+    aws_apigatewayv2_integration.clearVotes_integration
   ]
 
   api_id = aws_apigatewayv2_api.pointing.id

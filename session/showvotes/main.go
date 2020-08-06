@@ -23,7 +23,7 @@ import (
 func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, locker lock.GlobalLockAppropriator, saveSession session.Saver) func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
 		ctx = prepareLogs(ctx)
-		r := new(session.VoteRequest)
+		r := new(session.ShowVotesRequest)
 		err := json.Unmarshal([]byte(request.Body), r)
 		if err != nil {
 			zerolog.Ctx(ctx).Warn().Str("error", fmt.Sprintf("%+v", err)).Msg("error reading load request body")
@@ -50,18 +50,12 @@ func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, locker
 			zerolog.Ctx(ctx).Warn().Str("sessionID", r.SessionID).Msg("session not found")
 			return api.NewPermissionDeniedResponse(ctx), nil
 		}
-		zerolog.Ctx(ctx).Debug().Interface("session", sess).Msg("loaded session")
-
-		if sess.FacilitatorPoints && sess.Facilitator.SocketID == request.RequestContext.ConnectionID {
-			sess.Facilitator.CurrentVote = &r.Vote
-		} else {
-			for i := 0; i < len(sess.Participants); i++ {
-				if sess.Participants[i].SocketID == request.RequestContext.ConnectionID {
-					sess.Participants[i].CurrentVote = &r.Vote
-					break
-				}
-			}
+		if sess.FacilitatorSessionKey != r.FacilitatorSessionKey {
+			zerolog.Ctx(ctx).Warn().Str("sessionID", r.SessionID).Msg("attempt to show votes with incorrect facilitator key")
+			return api.NewPermissionDeniedResponse(ctx), nil
 		}
+
+		sess.VotesShown = true
 
 		err = saveSession(ctx, *sess)
 		if err != nil {

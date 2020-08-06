@@ -24,7 +24,7 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue } from 'vue-property-decorator'
+import { Component, Vue, Watch } from 'vue-property-decorator'
 import { PointingSession, PointingSessionStore } from './PointingSessionStore'
 import { User } from '@/user/user'
 import Loading from '@/app/Loading.vue'
@@ -40,6 +40,7 @@ export default class Pointing extends Vue {
   session?: PointingSession
   userId?: string
   newVote: string = ''
+  votesShownState: boolean = false
 
   get loading(): boolean {
     return this.newVote !== this.currentVote
@@ -61,12 +62,24 @@ export default class Pointing extends Vue {
     return this.user.currentVote
   }
 
+  mounted() {
+    this.votesShownState = this.session !== undefined && this.session.votesShown
+  }
+
   vote(value: string) {
     if (!this.session) {
       throw Error('attempt to vote without a session')
     }
     this.newVote = value
     this.$store.dispatch(PointingSessionStore.ACTION_VOTE, { sessionId: this.session.sessionId, vote: value })
+  }
+
+  @Watch('session.votesShown')
+  watchForClearVotes() {
+    if (this.votesShownState && this.session && !this.session.votesShown) {
+      this.newVote = ''
+    }
+    this.votesShownState = (this.session !== undefined && this.session.votesShown)
   }
 }
 </script>

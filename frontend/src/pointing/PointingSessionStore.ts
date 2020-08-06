@@ -38,6 +38,18 @@ export interface VoteRequest {
   vote: string
 }
 
+export interface ShowVotesRequest {
+  action?: 'showVotes'
+  sessionId: string
+  facilitatorSessionKey: string
+}
+
+export interface ClearVotesRequest {
+  action?: 'clearVotes'
+  sessionId: string
+  facilitatorSessionKey: string
+}
+
 export interface PointingSession {
   isFacilitator: boolean
   facilitatorSessionKey?: string
@@ -93,6 +105,8 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
   static ACTION_LOAD_SESSION = 'loadSession'
   static ACTION_JOIN_SESSION = 'joinSession'
   static ACTION_VOTE = 'vote'
+  static ACTION_SHOW_VOTES = 'showVotes'
+  static ACTION_CLEAR_VOTES = 'clearVotes'
 
   static MUTATION_SET_ACTIVE_SESSION = 'setActiveSession'
   static MUTATION_END_SESSION = 'clearSession'
@@ -133,6 +147,7 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
         if (this.currentSession && s.sessionId === this.currentSession.sessionId) {
           // this also sucks but there is something with updates not being seen that I don't understand currently and don't have time to figure out
           this.currentSession.participants = s.participants
+          this.currentSession.votesShown = s.votesShown
         }
       })
     }
@@ -221,6 +236,18 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
   @Action
   vote(request: VoteRequest) {
     request.action = 'vote'
+    this.socket.send(JSON.stringify(request))
+  }
+
+  @Action
+  showVotes(request: ShowVotesRequest) {
+    request.action = 'showVotes'
+    this.socket.send(JSON.stringify(request))
+  }
+
+  @Action
+  clearVotes(request: ClearVotesRequest) {
+    request.action = 'clearVotes'
     this.socket.send(JSON.stringify(request))
   }
 

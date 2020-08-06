@@ -43,6 +43,11 @@ type VoteRequest struct {
 	Vote      string `json:"vote"`
 }
 
+type ShowVotesRequest struct {
+	SessionID             string `json:"sessionId"`
+	FacilitatorSessionKey string `json:"facilitatorSessionKey"`
+}
+
 type CompleteSessionView struct {
 	SessionID             string `json:"sessionId"`
 	VotesShown            bool   `json:"votesShown"`
@@ -67,6 +72,7 @@ func ToParticipantView(s CompleteSessionView, connectionID string) ParticipantSe
 	}
 	return ParticipantSessionView{
 		SessionID:         s.SessionID,
+		VotesShown:        s.VotesShown,
 		Facilitator:       participantUserView(s, s.Facilitator, connectionID),
 		FacilitatorPoints: s.FacilitatorPoints,
 		Participants:      participants,

@@ -6,7 +6,7 @@
         <pointing :session="currentSession" :user-id="userId" />
         <pointing-results v-if="currentSession.votesShown" :session="currentSession" />
         <p v-else>
-          Votes are currently hidden. Once the chooses the votes of the
+          Votes are currently hidden. Once the facilitator chooses the votes of the
           {{ currentSession.participants.length }} participants will be shown.
         </p>
       </div>
