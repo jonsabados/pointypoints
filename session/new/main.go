@@ -29,11 +29,20 @@ func NewHandler(prepareLogs logging.Preparer, startSession session.Starter, disp
 			zerolog.Ctx(ctx).Warn().Str("error", fmt.Sprintf("%+v", err)).Msg("error session start reading request body")
 			return api.NewInternalServerError(ctx), nil
 		}
+		errors := make([]string, 0)
 		if toStart.Facilitator.Name == "" {
+			errors = append(errors, "facilitator name is required")
+
+		}
+		if toStart.Facilitator.UserID == "" {
+			errors = append(errors, "facilitator user id is required")
+		}
+		if len(errors) > 0 {
 			return api.NewValidationFailureResponse(ctx, api.ValidationError{
-				Errors: []string{"facilitator name is required"},
+				Errors: errors,
 			}), nil
 		}
+
 		toStart.Facilitator.SocketID = request.RequestContext.ConnectionID
 
 		sess, err := startSession(ctx, *toStart)

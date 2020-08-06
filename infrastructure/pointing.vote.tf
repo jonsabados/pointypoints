@@ -1,4 +1,4 @@
-data "aws_iam_policy_document" "loadFacilitatorSession_lambda_policy" {
+data "aws_iam_policy_document" "vote_lambda_policy" {
   statement {
     sid       = "AllowLogging"
     effect    = "Allow"
@@ -42,16 +42,14 @@ data "aws_iam_policy_document" "loadFacilitatorSession_lambda_policy" {
   }
 
   statement {
-    sid       = "AllowRecordInterest"
+    sid       = "AllowReadWatchers"
     effect    = "Allow"
     actions   = [
-      "dynamodb:PutItem",
       "dynamodb:GetItem",
       "dynamodb:DescribeStream",
       "dynamodb:DescribeTable"
     ]
     resources = [
-      "arn:aws:dynamodb:*:*:table/${aws_dynamodb_table.session_interest_store.name}",
       "arn:aws:dynamodb:*:*:table/${aws_dynamodb_table.session_watcher_store.name}"
     ]
   }
@@ -83,8 +81,8 @@ data "aws_iam_policy_document" "loadFacilitatorSession_lambda_policy" {
   }
 }
 
-resource "aws_iam_role" "loadFacilitatorSession_lambda_role" {
-  name               = "${local.workspace_prefix}loadFacilitatorSessionLambdaRole"
+resource "aws_iam_role" "vote_lambda_role" {
+  name               = "${local.workspace_prefix}voteLambdaRole"
   assume_role_policy = data.aws_iam_policy_document.assume_lambda_role_policy.json
 
   tags = {
@@ -92,17 +90,17 @@ resource "aws_iam_role" "loadFacilitatorSession_lambda_role" {
   }
 }
 
-resource "aws_iam_role_policy" "loadFacilitatorSession_lambda_role_policy" {
-  role   = aws_iam_role.loadFacilitatorSession_lambda_role.name
-  policy = data.aws_iam_policy_document.loadFacilitatorSession_lambda_policy.json
+resource "aws_iam_role_policy" "vote_lambda_role_policy" {
+  role   = aws_iam_role.vote_lambda_role.name
+  policy = data.aws_iam_policy_document.vote_lambda_policy.json
 }
 
-resource "aws_lambda_function" "loadFacilitatorSession_lambda" {
-  filename         = "../dist/loadFacilitatorSessionLambda.zip"
-  source_code_hash = filebase64sha256("../dist/loadFacilitatorSessionLambda.zip")
-  handler          = "loadFacilitatorSession"
-  function_name    = "${local.workspace_prefix}loadFacilitatorSession"
-  role             = aws_iam_role.loadFacilitatorSession_lambda_role.arn
+resource "aws_lambda_function" "vote_lambda" {
+  filename         = "../dist/voteLambda.zip"
+  source_code_hash = filebase64sha256("../dist/voteLambda.zip")
+  handler          = "vote"
+  function_name    = "${local.workspace_prefix}vote"
+  role             = aws_iam_role.vote_lambda_role.arn
   runtime          = "go1.x"
 
   tracing_config {
@@ -114,7 +112,6 @@ resource "aws_lambda_function" "loadFacilitatorSession_lambda" {
       REGION           = var.aws_region
       GATEWAY_ENDPOINT = "https://${aws_apigatewayv2_api.pointing.id}.execute-api.${var.aws_region}.amazonaws.com/${local.workspace_prefix}pointing-main/"
       SESSION_TABLE    = aws_dynamodb_table.session_store.name
-      INTEREST_TABLE   = aws_dynamodb_table.session_interest_store.name
       WATCHER_TABLE    = aws_dynamodb_table.session_watcher_store.name
       LOCK_TABLE       = aws_dynamodb_table.global_locks.name
       LOG_LEVEL        = "info"
@@ -126,33 +123,33 @@ resource "aws_lambda_function" "loadFacilitatorSession_lambda" {
   }
 }
 
-resource "aws_cloudwatch_log_group" "loadFacilitatorSession_lambda_logs" {
-  name              = "/aws/lambda/${aws_lambda_function.loadFacilitatorSession_lambda.function_name}"
+resource "aws_cloudwatch_log_group" "vote_lambda_logs" {
+  name              = "/aws/lambda/${aws_lambda_function.vote_lambda.function_name}"
   retention_in_days = 7
 }
 
-resource "aws_apigatewayv2_integration" "loadFacilitatorSession_integration" {
+resource "aws_apigatewayv2_integration" "vote_integration" {
   api_id           = aws_apigatewayv2_api.pointing.id
   integration_type = "AWS_PROXY"
 
-  description               = "Load Facilitator Sesion Lambda Integration"
+  description               = "Load Session Lambda Integration"
   integration_method        = "POST"
-  integration_uri           = aws_lambda_function.loadFacilitatorSession_lambda.invoke_arn
+  integration_uri           = aws_lambda_function.vote_lambda.invoke_arn
   content_handling_strategy = "CONVERT_TO_TEXT"
   request_templates         = {}
 }
 
-resource "aws_apigatewayv2_route" "loadFacilitatorSession" {
+resource "aws_apigatewayv2_route" "vote" {
   api_id    = aws_apigatewayv2_api.pointing.id
-  route_key = "loadFacilitatorSession"
-  target    = "integrations/${aws_apigatewayv2_integration.loadFacilitatorSession_integration.id}"
+  route_key = "vote"
+  target    = "integrations/${aws_apigatewayv2_integration.vote_integration.id}"
 }
 
-resource "aws_lambda_permission" "loadFacilitatorSession_allow_gateway_invoke" {
+resource "aws_lambda_permission" "vote_allow_gateway_invoke" {
   statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.loadFacilitatorSession_lambda.function_name
+  function_name = aws_lambda_function.vote_lambda.function_name
   principal     = "apigateway.amazonaws.com"
 
-  source_arn = "arn:aws:execute-api:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${aws_apigatewayv2_api.pointing.id}/*/loadFacilitatorSession"
+  source_arn = "arn:aws:execute-api:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${aws_apigatewayv2_api.pointing.id}/*/vote"
 }

@@ -3,14 +3,18 @@
     <h1>Pointing Session</h1>
     <div v-if="sessionLoaded">
       <div v-if="isParticipating">
-        uhhh... participating!
+        <pointing :session="currentSession" :user-id="userId" />
+        <pointing-results v-if="currentSession.votesShown" :session="currentSession" />
+        <p v-else>
+          Votes are currently hidden. Once the chooses the votes of the
+          {{ currentSession.participants.length }} participants will be shown.
+        </p>
       </div>
       <div v-else>
         <h4>This session currently has {{ currentSession.participants.length }} participants.</h4>
         <p>
           The session facilitator is
-          <user-display-name :user="currentSession.facilitator"/>
-          ,
+          <user-display-name :user="currentSession.facilitator"/>,
           <span v-if="currentSession.Points">
             and they are participating in pointing
           </span>
@@ -55,12 +59,16 @@
 import { Vue, Component, Watch } from 'vue-property-decorator'
 import { PointingSession, PointingSessionStore } from '@/pointing/PointingSessionStore'
 import Loading from '@/app/Loading.vue'
-import UserDisplayName from '@/pointing/UserDisplayName.vue'
+import UserDisplayName from '@/user/UserDisplayName.vue'
+import { v4 as uuidv4 } from 'uuid'
+import Pointing from '@/pointing/Pointing.vue'
+import PointingResults from '@/pointing/PointingResults.vue'
 
 @Component({
-  components: { UserDisplayName, Loading }
+  components: { PointingResults, Pointing, UserDisplayName, Loading }
 })
 export default class Session extends Vue {
+  userId: string = uuidv4()
   name: string = ''
   handle: string = ''
   detailsSet: boolean = false
@@ -82,7 +90,9 @@ export default class Session extends Vue {
   }
 
   get isParticipating(): boolean {
-    return this.sessionLoaded && this.detailsSet
+    return this.sessionLoaded && this.currentSession.participants.find((u) => {
+      return u.userId === this.userId
+    }) !== undefined
   }
 
   get currentSession(): PointingSession {
@@ -97,6 +107,7 @@ export default class Session extends Vue {
     this.$store.dispatch(PointingSessionStore.ACTION_JOIN_SESSION, {
       sessionId: this.$route.params.sessionId,
       user: {
+        userId: this.userId,
         name: this.name,
         handle: this.handle
       }

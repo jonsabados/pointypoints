@@ -25,7 +25,7 @@ type LoadResponse struct {
 	MarkActive bool                        `json:"markActive"`
 }
 
-func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, dispatch api.MessageDispatcher, recordInterest session.InterestRecorder) func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
+func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, dispatch api.MessageDispatcher, recordInterest session.InterestRecorder, locker lock.GlobalLockAppropriator, saveSession session.Saver) func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
 		ctx = prepareLogs(ctx)
 		l := new(session.LoadFacilitatorSessionRequest)
@@ -34,10 +34,23 @@ func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, dispat
 			zerolog.Ctx(ctx).Warn().Str("error", fmt.Sprintf("%+v", err)).Msg("error reading load request body")
 			return api.NewInternalServerError(ctx), nil
 		}
+
+		// will need to update the facilitator connection id
+		lck, err := locker(ctx, lock.SessionLockKey(l.SessionID))
+		if err != nil {
+			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error locking session")
+			return api.NewInternalServerError(ctx), nil
+		}
+		defer func() {
+			err := lck.Unlock(ctx)
+			if err != nil {
+				zerolog.Ctx(ctx).Error().Str("errpr", fmt.Sprintf("%+v", err)).Msg("error releasing lock")
+			}
+		}()
 		sess, err := loadSession(ctx, l.SessionID)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error reading session")
-			return api.NewPermissionDeniedResponse(ctx), nil
+			return api.NewInternalServerError(ctx), nil
 		}
 		if sess == nil {
 			zerolog.Ctx(ctx).Warn().Str("sessionID", l.SessionID).Msg("session not found")
@@ -46,6 +59,14 @@ func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, dispat
 			zerolog.Ctx(ctx).Warn().Msg("attempt to load session as facilitator with invalid facilitator key")
 			return api.NewPermissionDeniedResponse(ctx), nil
 		}
+		sess.Facilitator.SocketID = request.RequestContext.ConnectionID
+		err = saveSession(ctx, *sess)
+		if err != nil {
+			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error saving session")
+			return api.NewInternalServerError(ctx), nil
+		}
+
+
 		err = recordInterest(ctx, sess.SessionID, request.RequestContext.ConnectionID)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error recording interest")
@@ -91,5 +112,10 @@ func main() {
 	watcherTable := os.Getenv("WATCHER_TABLE")
 	interestRecorder := session.NewInterestRecorder(dynamo, interestTable, watcherTable, locker, time.Hour)
 
-	lambda.Start(NewHandler(logPreparer, loader, diutil.NewProdMessageDispatcher(), interestRecorder))
+	dispatcher := diutil.NewProdMessageDispatcher()
+
+	notifier := session.NewChangeNotifier(dynamo, watcherTable, dispatcher)
+	saveSess := session.NewSaver(dynamo, sessionTable, notifier, time.Hour)
+
+	lambda.Start(NewHandler(logPreparer, loader, dispatcher, interestRecorder, locker, saveSess))
 }

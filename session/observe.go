@@ -32,7 +32,7 @@ func NewChangeNotifier(dynamo *dynamodb.DynamoDB, watcherTable string, dispatchM
 		for _, r := range watcherRes.Item["Connections"].L {
 			err := dispatchMessage(ctx, *r.S, api.Message{
 				Type: api.SessionUpdated,
-				Body: updated,
+				Body: connectionView(updated, *r.S),
 			})
 			if err != nil {
 				zerolog.Ctx(ctx).Warn().Str("error", fmt.Sprintf("%+v", err)).Msg("error notifying observer")
@@ -40,6 +40,13 @@ func NewChangeNotifier(dynamo *dynamodb.DynamoDB, watcherTable string, dispatchM
 		}
 		return nil
 	}
+}
+
+func connectionView(sess CompleteSessionView, connectionID string) interface{} {
+	if sess.Facilitator.SocketID == connectionID {
+		return sess
+	}
+	return ToParticipantView(sess, connectionID)
 }
 
 type Disconnector func(ctx context.Context, connectionID string) error
@@ -82,7 +89,7 @@ func NewDisconnector(dynamo *dynamodb.DynamoDB, tableName string, locker lock.Gl
 			}
 		}
 		return nil
- 	}
+	}
 }
 
 type InterestRecorder func(ctx context.Context, sessionID string, connectionID string) error

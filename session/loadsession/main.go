@@ -45,7 +45,7 @@ func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, record
 		}
 		err = dispatch(ctx, request.RequestContext.ConnectionID, api.Message{
 			Type: api.SessionLoaded,
-			Body: session.ToParticipantView(*sess),
+			Body: session.ToParticipantView(*sess, request.RequestContext.ConnectionID),
 		})
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error dispatching message")

@@ -26,6 +26,7 @@
   "devDependencies": {
     "@types/jest": "^24.9.1",
     "@types/sinon": "^7.5.2",
+    "@types/uuid": "^8.0.1",
     "@vue/cli-plugin-babel": "^4.4.4",
     "@vue/cli-plugin-eslint": "^4.4.4",
     "@vue/cli-plugin-router": "^4.4.4",
@@ -42,6 +43,7 @@
     "sass-loader": "^8.0.0",
     "sinon": "^8.1.1",
     "typescript": "~3.5.3",
+    "uuid": "^8.3.0",
     "vue-gtag": "^1.6.3",
     "vue-template-compiler": "^2.6.10"
   }

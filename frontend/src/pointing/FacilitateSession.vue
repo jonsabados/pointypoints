@@ -7,26 +7,37 @@
       </div>
       <div v-else>
         <h4>Active Team Members</h4>
-        <table class="table">
+        <table class="table table-striped table-bordered">
           <thead>
             <tr>
               <th scope="col">Name</th>
               <th scope="col">Handle</th>
-              <th scope="col">Current Vote</th>
+              <th v-if="votesShown" scope="col">Vote</th>
+              <th v-else scope="col">Vote Ready</th>
             </tr>
           </thead>
-          <tr v-for="user in currentUsers" :key="user.handle+user.name">
-            <td>{{ user.name }}</td>
-            <td>{{ user.handle }}</td>
-            <td>
-              <div v-if="user.currentVote">
-                {{ user.currentVote }}
-              </div>
-              <div v-else>
-                -
-              </div>
-            </td>
-          </tr>
+          <tbody>
+            <tr v-for="user in currentUsers" :key="user.userId">
+              <td>{{ user.name }}</td>
+              <td>{{ user.handle }}</td>
+              <td v-if="votesShown">
+                <div v-if="user.currentVote">
+                  {{ user.currentVote }}
+                </div>
+                <div v-else>
+                  -
+                </div>
+              </td>
+              <td v-else>
+                <div v-if="user.currentVote">
+                  Yes
+                </div>
+                <div v-else>
+                  No
+                </div>
+              </td>
+            </tr>
+          </tbody>
         </table>
         <p>Additional team members may join by going to the following URL: <strong>{{ userURL }}</strong></p>
       </div>
@@ -39,8 +50,9 @@
 
 <script lang="ts">
 import { Vue, Component, Watch } from 'vue-property-decorator'
-import { PointingSessionStore, User } from '@/pointing/PointingSessionStore'
+import { PointingSessionStore } from '@/pointing/PointingSessionStore'
 import Loading from '@/app/Loading.vue'
+import { User } from '@/user/user'
 
 @Component({
   components: { Loading }
@@ -56,6 +68,10 @@ export default class Session extends Vue {
 
   get isSessionReady(): boolean {
     return this.$store.state.pointingSession.sessionActive
+  }
+
+  get votesShown(): boolean {
+    return this.$store.state.pointingSession.currentSession.votesShown
   }
 
   get userURL(): string {

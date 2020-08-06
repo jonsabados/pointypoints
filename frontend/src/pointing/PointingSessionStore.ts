@@ -1,16 +1,11 @@
 import { Action, Module, Mutation, VuexModule } from 'vuex-module-decorators'
 import { AppStore } from '@/app/AppStore'
+import { User } from '@/user/user'
 
 const EVENT_TYPE_SESSION_CREATED = 'SESSION_CREATED'
 const FACILITATOR_SESSION_LOADED = 'FACILITATOR_SESSION_LOADED'
 const SESSION_LOADED = 'SESSION_LOADED'
 const SESSION_UPDATED = 'SESSION_UPDATED'
-
-export interface User {
-  name: string | null
-  handle: string | null
-  currentVote?: number
-}
 
 export interface JoinSessionRequest {
   action?: 'joinSession'
@@ -37,6 +32,12 @@ export interface StartSessionRequest {
   facilitatorParticipating: boolean
 }
 
+export interface VoteRequest {
+  action?: 'vote'
+  sessionId: string
+  vote: string
+}
+
 export interface PointingSession {
   isFacilitator: boolean
   facilitatorSessionKey?: string
@@ -44,6 +45,7 @@ export interface PointingSession {
   sessionId: string
   facilitator: User
   participants: Array<User>
+  votesShown: boolean
 }
 
 export interface PointingSessionState {
@@ -77,7 +79,8 @@ function convertFacilitatorSession(view: any): PointingSession {
     sessionId: view.sessionId,
     facilitator: view.facilitator,
     participants: view.participants,
-    facilitatorPoints: view.facilitatorPoints
+    facilitatorPoints: view.facilitatorPoints,
+    votesShown: view.votesShown
   }
 }
 
@@ -89,6 +92,7 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
   static ACTION_LOAD_FACILITATOR_SESSION = 'loadFacilitatorSession'
   static ACTION_LOAD_SESSION = 'loadSession'
   static ACTION_JOIN_SESSION = 'joinSession'
+  static ACTION_VOTE = 'vote'
 
   static MUTATION_SET_ACTIVE_SESSION = 'setActiveSession'
   static MUTATION_END_SESSION = 'clearSession'
@@ -128,7 +132,6 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
       sessions.forEach((s) => {
         if (this.currentSession && s.sessionId === this.currentSession.sessionId) {
           // this also sucks but there is something with updates not being seen that I don't understand currently and don't have time to figure out
-          console.log('setting current session participants')
           this.currentSession.participants = s.participants
         }
       })
@@ -212,6 +215,12 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
   @Action
   joinSession(request: JoinSessionRequest) {
     request.action = 'joinSession'
+    this.socket.send(JSON.stringify(request))
+  }
+
+  @Action
+  vote(request: VoteRequest) {
+    request.action = 'vote'
     this.socket.send(JSON.stringify(request))
   }
 

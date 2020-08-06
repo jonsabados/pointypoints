@@ -11,10 +11,11 @@ import (
 )
 
 type User struct {
-	Name        string `json:"name,omitempty"`
-	Handle      string `json:"handle,omitempty"`
-	CurrentVote *int   `json:"currentVote,omitempty"`
-	SocketID    string `json:"-"`
+	UserID      string  `json:"userId"`
+	Name        string  `json:"name,omitempty"`
+	Handle      string  `json:"handle,omitempty"`
+	CurrentVote *string `json:"currentVote,omitempty"`
+	SocketID    string  `json:"-"`
 }
 
 type StartRequest struct {
@@ -37,8 +38,14 @@ type JoinSessionRequest struct {
 	User      User   `json:"user"`
 }
 
+type VoteRequest struct {
+	SessionID string `json:"sessionId"`
+	Vote      string `json:"vote"`
+}
+
 type CompleteSessionView struct {
 	SessionID             string `json:"sessionId"`
+	VotesShown            bool   `json:"votesShown"`
 	FacilitatorSessionKey string `json:"facilitatorSessionKey,omitempty"`
 	Facilitator           User   `json:"facilitator"`
 	FacilitatorPoints     bool   `json:"facilitatorPoints"`
@@ -47,30 +54,35 @@ type CompleteSessionView struct {
 
 type ParticipantSessionView struct {
 	SessionID         string `json:"sessionId"`
+	VotesShown        bool   `json:"votesShown"`
 	Facilitator       User   `json:"facilitator"`
 	FacilitatorPoints bool   `json:"facilitatorPoints"`
 	Participants      []User `json:"participants"`
 }
 
-func ToParticipantView(s CompleteSessionView) ParticipantSessionView {
+func ToParticipantView(s CompleteSessionView, connectionID string) ParticipantSessionView {
 	participants := make([]User, len(s.Participants))
 	for i, u := range s.Participants {
-		participants[i] = ParticipantUserView(u)
+		participants[i] = participantUserView(s, u, connectionID)
 	}
 	return ParticipantSessionView{
 		SessionID:         s.SessionID,
-		Facilitator:       ParticipantUserView(s.Facilitator),
+		Facilitator:       participantUserView(s, s.Facilitator, connectionID),
 		FacilitatorPoints: s.FacilitatorPoints,
 		Participants:      participants,
 	}
 }
 
-func ParticipantUserView(u User) User {
+func participantUserView(s CompleteSessionView, u User, connectionID string) User {
 	ret := User{
+		UserID: u.UserID,
 		Handle: u.Handle,
 	}
 	if u.Handle == "" {
 		ret.Name = u.Name
+	}
+	if s.VotesShown || u.SocketID == connectionID {
+		ret.CurrentVote = u.CurrentVote
 	}
 	return ret
 }
@@ -85,6 +97,7 @@ func NewStarter(dynamo *dynamodb.DynamoDB, tableName string, sessionExpiration t
 			TableName: aws.String(tableName),
 			Item: map[string]*dynamodb.AttributeValue{
 				"SessionID":             {S: aws.String(sessionID)},
+				"VotesShown":            {BOOL: aws.Bool(false)},
 				"FacilitatorSessionKey": {S: aws.String(facilitatorSessionKey)},
 				"Facilitator":           {M: convertUser(toStart.Facilitator)},
 				"FacilitatorPoints":     {BOOL: aws.Bool(toStart.FacilitatorPoints)},
@@ -117,6 +130,7 @@ func NewSaver(dynamo *dynamodb.DynamoDB, tableName string, notifyObservers Chang
 			TableName: aws.String(tableName),
 			Item: map[string]*dynamodb.AttributeValue{
 				"SessionID":             {S: aws.String(toSave.SessionID)},
+				"VotesShown":            {BOOL: aws.Bool(toSave.VotesShown)},
 				"FacilitatorSessionKey": {S: aws.String(toSave.FacilitatorSessionKey)},
 				"Facilitator":           {M: convertUser(toSave.Facilitator)},
 				"FacilitatorPoints":     {BOOL: aws.Bool(toSave.FacilitatorPoints)},
@@ -157,6 +171,7 @@ func NewLoader(dynamo *dynamodb.DynamoDB, tableName string) Loader {
 		}
 		return &CompleteSessionView{
 			SessionID:             *res.Item["SessionID"].S,
+			VotesShown:            *res.Item["VotesShown"].BOOL,
 			FacilitatorSessionKey: *res.Item["FacilitatorSessionKey"].S,
 			Facilitator:           readUser(res.Item["Facilitator"].M),
 			FacilitatorPoints:     *res.Item["FacilitatorPoints"].BOOL,
@@ -167,28 +182,26 @@ func NewLoader(dynamo *dynamodb.DynamoDB, tableName string) Loader {
 
 func convertUser(u User) map[string]*dynamodb.AttributeValue {
 	ret := map[string]*dynamodb.AttributeValue{
+		"UserID":   {S: aws.String(u.UserID)},
 		"Name":     {S: aws.String(u.Name)},
 		"Handle":   {S: aws.String(u.Handle)},
 		"SocketID": {S: aws.String(u.SocketID)},
 	}
 	if u.CurrentVote != nil {
-		ret["CurrentVote"] = &dynamodb.AttributeValue{N: aws.String(strconv.Itoa(*u.CurrentVote))}
+		ret["CurrentVote"] = &dynamodb.AttributeValue{S: u.CurrentVote}
 	}
 	return ret
 }
 
 func readUser(r map[string]*dynamodb.AttributeValue) User {
 	ret := User{
+		UserID:   *r["UserID"].S,
 		Name:     *r["Name"].S,
 		Handle:   *r["Handle"].S,
 		SocketID: *r["SocketID"].S,
 	}
 	if r["CurrentVote"] != nil {
-		val, err := strconv.Atoi(*r["CurrentVote"].N)
-		if err != nil {
-			panic(err)
-		}
-		ret.CurrentVote = &val
+		ret.CurrentVote = r["CurrentVote"].S
 	}
 	return ret
 }

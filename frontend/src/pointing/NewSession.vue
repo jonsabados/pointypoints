@@ -38,6 +38,7 @@ import { Vue, Component, Watch } from 'vue-property-decorator'
 import { PointingSessionStore } from '@/pointing/PointingSessionStore'
 import Loading from '@/app/Loading.vue'
 import { FACILITATE_ROUTE_NAME } from '@/navigation/router'
+import { newUser } from '@/user/user'
 
 @Component({
   components: {
@@ -71,10 +72,7 @@ export default class NewSession extends Vue {
     const facilitatorHandle = this.facilitatorHandle
     const facilitatorParticipating = this.facilitatorParticipating
     this.$store.dispatch(PointingSessionStore.ACTION_BEGIN_SESSION, {
-      facilitator: {
-        name: facilitatorName,
-        handle: facilitatorHandle
-      },
+      facilitator: newUser(facilitatorName, facilitatorHandle),
       facilitatorParticipating: facilitatorParticipating
     })
   }

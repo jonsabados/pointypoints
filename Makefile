@@ -69,4 +69,10 @@ dist/joinSession: dist/ $(shell find . -iname "*.go")
 dist/joinSessionLambda.zip: dist/joinSession
 	cd dist && zip joinSessionLambda.zip joinSession
 
-build: frontend/dist/index.html dist/newSessionLambda.zip dist/connectLambda.zip dist/disconnectLambda.zip dist/loadFacilitatorSessionLambda.zip dist/loadSessionLambda.zip dist/joinSessionLambda.zip
+dist/vote: dist/ $(shell find . -iname "*.go")
+	GOOS=linux go build -o dist/vote github.com/jonsabados/pointypoints/session/vote
+
+dist/voteLambda.zip: dist/vote
+	cd dist && zip voteLambda.zip vote
+
+build: frontend/dist/index.html dist/newSessionLambda.zip dist/connectLambda.zip dist/disconnectLambda.zip dist/loadFacilitatorSessionLambda.zip dist/loadSessionLambda.zip dist/joinSessionLambda.zip dist/voteLambda.zip
