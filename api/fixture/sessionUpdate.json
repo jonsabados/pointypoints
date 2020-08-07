@@ -1,0 +1,1 @@
+{"type":"SESSION_UPDATED","body":{"sessionId":"123","votesShown":true,"facilitatorSessionKey":"123345","facilitator":{"userId":"a","name":"b","handle":"c","currentVote":"123"},"facilitatorPoints":false,"participants":[{"userId":"f","name":"g","handle":"h","currentVote":"521"}]}}

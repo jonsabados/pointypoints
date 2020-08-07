@@ -3,6 +3,7 @@ package session
 import (
 	"context"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -65,6 +66,12 @@ type ParticipantSessionView struct {
 	Participants      []User `json:"participants"`
 }
 
+type DynamoClient interface {
+	GetItemWithContext(ctx aws.Context, input *dynamodb.GetItemInput, opts ...request.Option) (*dynamodb.GetItemOutput, error)
+	PutItemWithContext(ctx aws.Context, input *dynamodb.PutItemInput, opts ...request.Option) (*dynamodb.PutItemOutput, error)
+	DeleteItemWithContext(ctx aws.Context, input *dynamodb.DeleteItemInput, opts ...request.Option) (*dynamodb.DeleteItemOutput, error)
+}
+
 func ToParticipantView(s CompleteSessionView, connectionID string) ParticipantSessionView {
 	participants := make([]User, len(s.Participants))
 	for i, u := range s.Participants {
@@ -95,7 +102,7 @@ func participantUserView(s CompleteSessionView, u User, connectionID string) Use
 
 type Starter func(ctx context.Context, toStart StartRequest) (CompleteSessionView, error)
 
-func NewStarter(dynamo *dynamodb.DynamoDB, tableName string, sessionExpiration time.Duration) Starter {
+func NewStarter(dynamo DynamoClient, tableName string, sessionExpiration time.Duration) Starter {
 	return func(ctx context.Context, toStart StartRequest) (CompleteSessionView, error) {
 		sessionID := uuid.New().String()
 		facilitatorSessionKey := uuid.New().String()
@@ -126,7 +133,7 @@ func NewStarter(dynamo *dynamodb.DynamoDB, tableName string, sessionExpiration t
 
 type Saver func(ctx context.Context, toSave CompleteSessionView) error
 
-func NewSaver(dynamo *dynamodb.DynamoDB, tableName string, notifyObservers ChangeNotifier, sessionExpiration time.Duration) Saver {
+func NewSaver(dynamo DynamoClient, tableName string, notifyObservers ChangeNotifier, sessionExpiration time.Duration) Saver {
 	return func(ctx context.Context, toSave CompleteSessionView) error {
 		participants := make([]*dynamodb.AttributeValue, len(toSave.Participants))
 		for i, u := range toSave.Participants {
@@ -156,7 +163,7 @@ func NewSaver(dynamo *dynamodb.DynamoDB, tableName string, notifyObservers Chang
 
 type Loader func(ctx context.Context, sessionID string) (*CompleteSessionView, error)
 
-func NewLoader(dynamo *dynamodb.DynamoDB, tableName string) Loader {
+func NewLoader(dynamo DynamoClient, tableName string) Loader {
 	return func(ctx context.Context, sessionID string) (*CompleteSessionView, error) {
 		res, err := dynamo.GetItemWithContext(ctx, &dynamodb.GetItemInput{
 			TableName: aws.String(tableName),

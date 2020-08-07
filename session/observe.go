@@ -15,7 +15,7 @@ import (
 
 type ChangeNotifier func(ctx context.Context, updated CompleteSessionView) error
 
-func NewChangeNotifier(dynamo *dynamodb.DynamoDB, watcherTable string, dispatchMessage api.MessageDispatcher) ChangeNotifier {
+func NewChangeNotifier(dynamo DynamoClient, watcherTable string, dispatchMessage api.MessageDispatcher) ChangeNotifier {
 	return func(ctx context.Context, updated CompleteSessionView) error {
 		watcherRes, err := dynamo.GetItemWithContext(ctx, &dynamodb.GetItemInput{
 			TableName: aws.String(watcherTable),
@@ -51,7 +51,7 @@ func connectionView(sess CompleteSessionView, connectionID string) interface{} {
 
 type Disconnector func(ctx context.Context, connectionID string) error
 
-func NewDisconnector(dynamo *dynamodb.DynamoDB, tableName string, locker lock.GlobalLockAppropriator, loadSession Loader, saveSession Saver) Disconnector {
+func NewDisconnector(dynamo DynamoClient, tableName string, locker lock.GlobalLockAppropriator, loadSession Loader, saveSession Saver) Disconnector {
 	return func(ctx context.Context, connectionID string) error {
 		rec, err := dynamo.GetItemWithContext(ctx, &dynamodb.GetItemInput{
 			TableName: aws.String(tableName),
@@ -94,7 +94,7 @@ func NewDisconnector(dynamo *dynamodb.DynamoDB, tableName string, locker lock.Gl
 
 type InterestRecorder func(ctx context.Context, sessionID string, connectionID string) error
 
-func NewInterestRecorder(dynamo *dynamodb.DynamoDB, sessionTable string, watcherTable string, locker lock.GlobalLockAppropriator, sessionExpiration time.Duration) InterestRecorder {
+func NewInterestRecorder(dynamo DynamoClient, sessionTable string, watcherTable string, locker lock.GlobalLockAppropriator, sessionExpiration time.Duration) InterestRecorder {
 	return func(ctx context.Context, sessionID string, connectionID string) error {
 		expiration := time.Now().Add(sessionExpiration * 10)
 		err := recordWatcher(ctx, dynamo, expiration, sessionTable, "ConnectionID", "Sessions", connectionID, sessionID)
@@ -107,7 +107,7 @@ func NewInterestRecorder(dynamo *dynamodb.DynamoDB, sessionTable string, watcher
 	}
 }
 
-func recordWatcher(ctx context.Context, dynamo *dynamodb.DynamoDB, expiration time.Time, table, key, valueKey, observer, subject string) error {
+func recordWatcher(ctx context.Context, dynamo DynamoClient, expiration time.Time, table, key, valueKey, observer, subject string) error {
 	existingRes, err := dynamo.GetItemWithContext(ctx, &dynamodb.GetItemInput{
 		TableName: aws.String(table),
 		Key: map[string]*dynamodb.AttributeValue{

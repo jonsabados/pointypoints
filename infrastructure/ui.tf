@@ -115,3 +115,12 @@ resource "aws_route53_record" "www_domain_name" {
   records = [aws_cloudfront_distribution.ui_cdn.domain_name]
   ttl     = 60
 }
+
+resource "aws_route53_record" "domain_txt_records" {
+  count   = terraform.workspace == "default" ? 1 : 0
+  name    = data.aws_ssm_parameter.domain_name.value
+  type    = "TXT"
+  zone_id = data.aws_route53_zone.main_domain.id
+  records = [data.aws_ssm_parameter.google_site_verification_record.value]
+  ttl     = 900
+}
