@@ -51,10 +51,7 @@
         </div>
         <p>Additional team members may join by going to the following URL: <strong>{{ userURL }}</strong></p>
       </div>
-      <div v-if="isVoting">
-        <h4>Your Vote</h4>
-        <pointing :session="currentSession" :user-id="userId"/>
-      </div>
+      <pointing v-if="isVoting" :session="currentSession" :user-id="userId"/>
     </div>
     <div v-else>
       <loading />
