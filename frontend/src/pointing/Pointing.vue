@@ -43,12 +43,15 @@ export default class Pointing extends Vue {
   votesShownState: boolean = false
 
   get loading(): boolean {
-    return this.newVote !== this.currentVote
+    return !!this.newVote && this.newVote !== this.currentVote
   }
 
   get user(): User | undefined {
     if (!this.session) {
       return undefined
+    }
+    if (this.session.facilitator.userId === this.userId) {
+      return this.session.facilitator
     }
     return this.session.participants.find((u) => {
       return u.userId === this.userId
@@ -63,7 +66,7 @@ export default class Pointing extends Vue {
   }
 
   mounted() {
-    this.votesShownState = this.session !== undefined && this.session.votesShown
+    this.votesShownState = !!this.session && this.session.votesShown
   }
 
   vote(value: string) {

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"strconv"
@@ -45,13 +44,11 @@ func NewGlobalLockAppropriator(dynamo *dynamodb.DynamoDB, tableName string, retr
 	return func(ctx context.Context, lockID string) (Lock, error) {
 		start := time.Now()
 		for true {
-			lockUUID := uuid.New().String()
 			expiration := time.Now().Add(maxDuration).Unix()
 			toPut := &dynamodb.PutItemInput{
 				TableName: aws.String(tableName),
 				Item: map[string]*dynamodb.AttributeValue{
 					"LockID":     {S: aws.String(lockID)},
-					"Owner":      {S: aws.String(lockUUID)},
 					"Expiration": {N: aws.String(strconv.FormatInt(expiration, 10))},
 				},
 				ConditionExpression: aws.String("attribute_not_exists(LockID)"),

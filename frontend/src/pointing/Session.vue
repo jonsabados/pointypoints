@@ -6,7 +6,9 @@
         <pointing :session="currentSession" :user-id="userId" />
         <pointing-results v-if="currentSession.votesShown" :session="currentSession" />
         <p v-else>
-          Votes are currently hidden. Once the facilitator chooses the votes of the
+          Votes are currently hidden. Once the facilitator chooses
+          <span v-if="currentSession.facilitatorPoints">their vote and</span>
+          the votes of the
           {{ currentSession.participants.length }} participants will be shown.
         </p>
       </div>
@@ -15,7 +17,7 @@
         <p>
           The session facilitator is
           <user-display-name :user="currentSession.facilitator"/>,
-          <span v-if="currentSession.Points">
+          <span v-if="currentSession.facilitatorPoints">
             and they are participating in pointing
           </span>
           <span v-else>
@@ -27,21 +29,17 @@
           <form @submit.prevent="joinSession">
             <div class="form-group">
               <label for="Name">Name:</label>
-              <input type="text" class="form-control" id="name" aria-describedby="nameHelp" placeholder="Jane Doe"
-                     v-model="name"/>
-              <small id="Help" class="form-text text-muted">Name of the individual running the session.
-                Required.</small>
+              <input type="text" class="form-control" id="name" aria-describedby="nameHelp" placeholder="Jane Doe" v-model="name"/>
+              <small id="Help" class="form-text text-muted">Name of the individual running the session. Required.</small>
             </div>
             <div class="form-group">
               <label for="Handle"> Handle:</label>
               <input type="text" class="form-control" id="Handle" aria-describedby="HandleHelp"
                      placeholder="PointMaster2020" v-model="handle"/>
-              <small id="HandleHelp" class="form-text text-muted">If specified this will be the display name of the ,
-                otherwise the value for Name will be displayed.</small>
+              <small id="HandleHelp" class="form-text text-muted">If specified this will be the name displayed to other
+                participants, otherwise the value for Name will be displayed.</small>
             </div>
-            <button type="submit" class="btn btn-primary" :disabled="detailsIncomplete" id="startSessionButton">Join
-              Session
-            </button>
+            <button type="submit" class="btn btn-primary" :disabled="detailsIncomplete" id="startSessionButton">Join Session</button>
           </form>
         </div>
         <div v-else>

@@ -19,10 +19,16 @@ stop-dynamo:
 	@docker stop dynamo 2>&1 >/dev/null
 	@docker rm dynamo 2>&1 >/dev/null
 
-.PHONY: test
-test:
+.PHONY: frontend-test
+frontend-test:
 	cd frontend && npm run test:unit
+
+.PHONY: backend-test
+backend-test:
 	@./execute-tests.sh
+
+.PHONY: test
+test: frontend-test backend-test
 
 .PHONY: clean
 clean:

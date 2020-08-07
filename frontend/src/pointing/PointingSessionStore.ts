@@ -29,7 +29,7 @@ export interface LoadSessionRequest {
 export interface StartSessionRequest {
   action?: 'newSession'
   facilitator: User
-  facilitatorParticipating: boolean
+  facilitatorPoints: boolean
 }
 
 export interface VoteRequest {
@@ -148,6 +148,7 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
           // this also sucks but there is something with updates not being seen that I don't understand currently and don't have time to figure out
           this.currentSession.participants = s.participants
           this.currentSession.votesShown = s.votesShown
+          this.currentSession.facilitator = s.facilitator
         }
       })
     }

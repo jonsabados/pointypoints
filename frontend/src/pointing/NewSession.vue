@@ -17,16 +17,16 @@
           <input type="text" class="form-control" id="facilitatorHandle" aria-describedby="facilitatorHandleHelp" placeholder="PointMaster2020" v-model="facilitatorHandle" />
           <small id="facilitatorHandleHelp" class="form-text text-muted">If specified this will be the display name of the facilitator, otherwise the value for Facilitator Name will be displayed.</small>
         </div>
-<!--        <div class="form-check">-->
-<!--          <input type="radio" name="facilitatorPointing" class="form-check-input" id="facilitatorPointingNo" aria-describedby="facilitatorPointingNoHelp" value="false" v-model="facilitatorParticipating" />-->
-<!--          <label class="form-check-label" for="facilitatorPointingNo">Facilitator will not be pointing</label>-->
-<!--          <small id="facilitatorPointingNoHelp" class="form-text text-muted">When selected the facilitator will only control when votes are shown and cleared.</small>-->
-<!--        </div>-->
-<!--        <div class="form-check">-->
-<!--          <input type="radio" name="facilitatorPointing" class="form-check-input" id="facilitatorPointingYes" aria-describedby="facilitatorPointingYesHelp" value="true" v-model="facilitatorParticipating"/>-->
-<!--          <label class="form-check-label" for="facilitatorPointingYes">Facilitator will be pointing</label>-->
-<!--          <small id="facilitatorPointingYesHelp" class="form-text text-muted">When selected the facilitator will also have the option to point issues along with the ability to control when votes are shown and cleared.</small>-->
-<!--        </div>-->
+        <div class="form-check">
+          <input type="radio" name="facilitatorPointing" class="form-check-input" id="facilitatorPointingNo" aria-describedby="facilitatorPointingNoHelp" value="false" v-model="facilitatorPoints" />
+          <label class="form-check-label" for="facilitatorPointingNo">Facilitator will not be pointing</label>
+          <small id="facilitatorPointingNoHelp" class="form-text text-muted">When selected the facilitator will only control when votes are shown and cleared.</small>
+        </div>
+        <div class="form-check">
+          <input type="radio" name="facilitatorPointing" class="form-check-input" id="facilitatorPointingYes" aria-describedby="facilitatorPointingYesHelp" value="true" v-model="facilitatorPoints"/>
+          <label class="form-check-label" for="facilitatorPointingYes">Facilitator will be pointing</label>
+          <small id="facilitatorPointingYesHelp" class="form-text text-muted">When selected the facilitator will also have the option to point issues along with the ability to control when votes are shown and cleared.</small>
+        </div>
         <button type="submit" class="btn btn-primary" :disabled="disableSubmit" id="startSessionButton">Start Session</button>
       </form>
     </div>
@@ -50,7 +50,7 @@ export default class NewSession extends Vue {
 
   facilitatorHandle: string = ''
 
-  facilitatorParticipating: boolean = false
+  facilitatorPoints: string = 'false'
 
   creatingSession: boolean = false
 
@@ -70,10 +70,10 @@ export default class NewSession extends Vue {
     this.creatingSession = true
     const facilitatorName = this.facilitatorName
     const facilitatorHandle = this.facilitatorHandle
-    const facilitatorParticipating = this.facilitatorParticipating
+    const facilitatorPoints = this.facilitatorPoints === 'true'
     this.$store.dispatch(PointingSessionStore.ACTION_BEGIN_SESSION, {
       facilitator: newUser(facilitatorName, facilitatorHandle),
-      facilitatorParticipating: facilitatorParticipating
+      facilitatorPoints: facilitatorPoints
     })
   }
 

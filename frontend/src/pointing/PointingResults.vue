@@ -44,7 +44,11 @@ export default class PointingResults extends Vue {
     if (!this.session) {
       return []
     }
-    return this.session.participants
+    const ret = this.session.participants
+    if (this.session.facilitatorPoints) {
+      ret.push(this.session.facilitator)
+    }
+    return ret
   }
 }
 </script>

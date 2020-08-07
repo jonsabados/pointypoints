@@ -51,6 +51,10 @@
         </div>
         <p>Additional team members may join by going to the following URL: <strong>{{ userURL }}</strong></p>
       </div>
+      <div v-if="isVoting">
+        <h4>Your Vote</h4>
+        <pointing :session="currentSession" :user-id="userId"/>
+      </div>
     </div>
     <div v-else>
       <loading />
@@ -60,16 +64,29 @@
 
 <script lang="ts">
 import { Vue, Component, Watch } from 'vue-property-decorator'
-import { PointingSessionStore } from '@/pointing/PointingSessionStore'
+import { PointingSession, PointingSessionStore } from '@/pointing/PointingSessionStore'
 import Loading from '@/app/Loading.vue'
 import { User } from '@/user/user'
+import Pointing from '@/pointing/Pointing.vue'
 
 @Component({
-  components: { Loading }
+  components: { Pointing, Loading }
 })
 export default class Session extends Vue {
   votesShownClicked = false
   clearVotesClicked = false
+
+  get userId(): string {
+    return this.currentSession ? this.currentSession.facilitator.userId : ''
+  }
+
+  get currentSession(): PointingSession | undefined {
+    return this.$store.state.pointingSession.currentSession
+  }
+
+  get isVoting(): boolean {
+    return !!this.currentSession && this.currentSession.facilitatorPoints
+  }
 
   get waitingVotesShown(): boolean {
     return this.votesShownClicked && !this.votesShown
@@ -80,11 +97,11 @@ export default class Session extends Vue {
   }
 
   get teamEmpty(): boolean {
-    return this.$store.state.pointingSession.currentSession.participants.length === 0
+    return !this.currentSession || this.currentSession.participants.length === 0
   }
 
   get currentUsers(): Array<User> {
-    return this.$store.state.pointingSession.currentSession.participants
+    return this.currentSession ? this.currentSession.participants : []
   }
 
   get votedCount(): number {
