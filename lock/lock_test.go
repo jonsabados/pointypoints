@@ -40,7 +40,7 @@ func Test_NewGlobalLockAppropriator_Locking(t *testing.T) {
 	done := sync.WaitGroup{}
 	done.Add(threadCount)
 
-	testInstance := NewGlobalLockAppropriator(dynamo, tableName, time.Nanosecond * 10, time.Millisecond*time.Duration(threadCount)*1000)
+	testInstance := NewGlobalLockAppropriator(dynamo, tableName, time.Nanosecond * 10, time.Second)
 
 	for i := 0; i < threadCount; i++ {
 		go func() {
@@ -48,6 +48,8 @@ func Test_NewGlobalLockAppropriator_Locking(t *testing.T) {
 			barrier.Wait()
 
 			ctx := context.Background()
+			ctx, closeCtx := context.WithTimeout(ctx, time.Millisecond*time.Duration(threadCount)*1000)
+			defer closeCtx()
 			lock, err := testInstance(ctx, lockID)
 			if !asserter.NoError(err) {
 				return
@@ -83,7 +85,7 @@ func Test_NewGlobalLockAppropriator_Locking(t *testing.T) {
 	asserter.NoError(err)
 }
 
-func Test_NewGlobalLockAppropriator_LockTimeout(t *testing.T) {
+func Test_NewGlobalLockAppropriator_ContextTimeout(t *testing.T) {
 	asserter := assert.New(t)
 
 	tableName := uuid.New().String()
@@ -101,13 +103,17 @@ func Test_NewGlobalLockAppropriator_LockTimeout(t *testing.T) {
 
 	lockID := uuid.New().String()
 
-	testInstance := NewGlobalLockAppropriator(dynamo, tableName, time.Nanosecond * 10, time.Millisecond * 100)
+	testInstance := NewGlobalLockAppropriator(dynamo, tableName, time.Nanosecond * 10, time.Second)
 	_, err = testInstance(context.Background(), lockID)
 	if !asserter.NoError(err) {
 		return
 	}
-	_, err = testInstance(context.Background(), lockID)
-	asserter.EqualError(err, "lock acquisition timed out")
+
+	ctx := context.Background()
+	ctx, ctxCancel := context.WithTimeout(ctx, time.Millisecond * 3)
+	defer ctxCancel()
+	_, err = testInstance(ctx, lockID)
+	asserter.EqualError(err, "context closed")
 
 	_, err = dynamo.DeleteTable(&dynamodb.DeleteTableInput{
 		TableName: aws.String(tableName),

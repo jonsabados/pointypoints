@@ -12,7 +12,7 @@ import (
 )
 
 const LockWaitTime = time.Millisecond * 5
-const LockTimeout = time.Second
+const LockExpiration = time.Minute
 const SessionTimeout = time.Hour
 
 var SessionTable = os.Getenv("SESSION_TABLE")

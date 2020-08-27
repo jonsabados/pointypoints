@@ -76,7 +76,7 @@ func main() {
 
 	dynamo := lambdautil.NewDynamoClient(sess)
 	starter := session.NewStarter(dynamo, lambdautil.SessionTable, time.Hour)
-	locker := lock.NewGlobalLockAppropriator(dynamo, lambdautil.LockTable, lambdautil.LockWaitTime, lambdautil.LockTimeout)
+	locker := lock.NewGlobalLockAppropriator(dynamo, lambdautil.LockTable, lambdautil.LockWaitTime, lambdautil.LockExpiration)
 	interestRecorder := session.NewInterestRecorder(dynamo, lambdautil.InterestTable, lambdautil.WatcherTable, locker, lambdautil.SessionTimeout)
 
 	lambda.Start(NewHandler(logPreparer, starter, lambdautil.NewProdMessageDispatcher(), interestRecorder))

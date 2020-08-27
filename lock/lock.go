@@ -19,7 +19,6 @@ type Lock interface {
 
 type lockImpl struct {
 	lockID     string
-	expiration time.Time
 	tableName  string
 	dynamo     *dynamodb.DynamoDB
 }
@@ -39,35 +38,36 @@ func (l *lockImpl) Unlock(ctx context.Context) error {
 type GlobalLockAppropriator func(ctx context.Context, lockID string) (Lock, error)
 
 // NewGlobalLockAppropriator returns a fully wired GlobalLockAppropriator. If lock acquisition fails it will be retried
-// based on retry until maxDuration has passed at which point acquisition will fail with an error.
-func NewGlobalLockAppropriator(dynamo *dynamodb.DynamoDB, tableName string, retry time.Duration, maxDuration time.Duration) GlobalLockAppropriator {
+// based on the given duration. Lock entries will expire in dynamo based on dynamoExpiration. Context expiration is respected.
+func NewGlobalLockAppropriator(dynamo *dynamodb.DynamoDB, tableName string, retry time.Duration, dynamoExpiration time.Duration) GlobalLockAppropriator {
 	return func(ctx context.Context, lockID string) (Lock, error) {
-		start := time.Now()
-		for true {
-			expiration := time.Now().Add(maxDuration).Unix()
-			toPut := &dynamodb.PutItemInput{
-				TableName: aws.String(tableName),
-				Item: map[string]*dynamodb.AttributeValue{
-					"LockID":     {S: aws.String(lockID)},
-					"Expiration": {N: aws.String(strconv.FormatInt(expiration, 10))},
-				},
-				ConditionExpression: aws.String("attribute_not_exists(LockID)"),
-			}
-
-			_, err := dynamo.PutItemWithContext(ctx, toPut)
-			if err != nil {
-				if start.Add(maxDuration).Before(time.Now()) {
-					return nil, errors.New("lock acquisition timed out")
+		expiration := time.Now().Add(dynamoExpiration).Unix()
+		lockAcquired := false
+		for !lockAcquired {
+			select {
+			case <- ctx.Done():
+				return nil, errors.New("context closed")
+			default:
+				toPut := &dynamodb.PutItemInput{
+					TableName: aws.String(tableName),
+					Item: map[string]*dynamodb.AttributeValue{
+						"LockID":     {S: aws.String(lockID)},
+						"Expiration": {N: aws.String(strconv.FormatInt(expiration, 10))},
+					},
+					ConditionExpression: aws.String("attribute_not_exists(LockID)"),
 				}
-				zerolog.Ctx(ctx).Debug().Err(err).Msg("waiting for lock")
-				time.Sleep(retry)
-				continue
+
+				_, err := dynamo.PutItemWithContext(ctx, toPut)
+				if err != nil {
+					zerolog.Ctx(ctx).Debug().Err(err).Msg("waiting for lock")
+					time.Sleep(retry)
+					continue
+				}
+				lockAcquired = true
 			}
-			break
 		}
 		return &lockImpl{
 			lockID:     lockID,
-			expiration: time.Now().Add(maxDuration),
 			dynamo:     dynamo,
 			tableName:  tableName,
 		}, nil
