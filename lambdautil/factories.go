@@ -1,18 +1,22 @@
 package lambdautil
 
 import (
+	"os"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	awssession "github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/apigatewaymanagementapi"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-xray-sdk-go/xray"
+
 	"github.com/jonsabados/pointypoints/api"
-	"os"
-	"time"
 )
 
 const LockWaitTime = time.Millisecond * 5
-const LockExpiration = time.Minute
+// LockExpiration defines What the expiration of locks should be set to in dynamo. For now just match default lambda
+// execution time, this could be smarter and driven by env var or something but :shrug: for now.
+const LockExpiration = time.Second * 3
 const SessionTimeout = time.Hour
 
 var SessionTable = os.Getenv("SESSION_TABLE")

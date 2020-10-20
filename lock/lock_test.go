@@ -40,7 +40,9 @@ func Test_NewGlobalLockAppropriator_Locking(t *testing.T) {
 	done := sync.WaitGroup{}
 	done.Add(threadCount)
 
-	testInstance := NewGlobalLockAppropriator(dynamo, tableName, time.Nanosecond * 10, time.Second)
+	executionTimeout := time.Millisecond*time.Duration(threadCount) * 10000
+
+	testInstance := NewGlobalLockAppropriator(dynamo, tableName, time.Nanosecond * 10, executionTimeout)
 
 	for i := 0; i < threadCount; i++ {
 		go func() {
@@ -48,7 +50,7 @@ func Test_NewGlobalLockAppropriator_Locking(t *testing.T) {
 			barrier.Wait()
 
 			ctx := context.Background()
-			ctx, closeCtx := context.WithTimeout(ctx, time.Millisecond*time.Duration(threadCount)*1000)
+			ctx, closeCtx := context.WithTimeout(ctx, executionTimeout)
 			defer closeCtx()
 			lock, err := testInstance(ctx, lockID)
 			if !asserter.NoError(err) {
@@ -85,7 +87,7 @@ func Test_NewGlobalLockAppropriator_Locking(t *testing.T) {
 	asserter.NoError(err)
 }
 
-func Test_NewGlobalLockAppropriator_ContextTimeout(t *testing.T) {
+func Test_NewGlobalLockAppropriator_ContextTimeoutDuringLock(t *testing.T) {
 	asserter := assert.New(t)
 
 	tableName := uuid.New().String()
@@ -112,8 +114,16 @@ func Test_NewGlobalLockAppropriator_ContextTimeout(t *testing.T) {
 	ctx := context.Background()
 	ctx, ctxCancel := context.WithTimeout(ctx, time.Millisecond * 3)
 	defer ctxCancel()
+
 	_, err = testInstance(ctx, lockID)
 	asserter.EqualError(err, "context closed")
+	// at this point we should still have a lock record out there that's going to expire in ~ one second but will be left hanging by the privates lock, lets make sure we can lock at this point
+
+	newCtx, newCtxCancel := context.WithTimeout(context.Background(), time.Second * 2)
+	defer newCtxCancel()
+	lock, err := testInstance(newCtx, lockID)
+	asserter.NoError(err)
+	asserter.NoError(lock.Unlock(newCtx))
 
 	_, err = dynamo.DeleteTable(&dynamodb.DeleteTableInput{
 		TableName: aws.String(tableName),
