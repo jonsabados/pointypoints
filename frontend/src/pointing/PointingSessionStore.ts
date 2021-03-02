@@ -167,7 +167,6 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
     }
     this.socket.onmessage = (ev) => {
       const eventData = JSON.parse(ev.data)
-      console.log(eventData)
       if (!eventData.type) {
         console.log('event does not match expected interface')
         console.log(eventData)
