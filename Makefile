@@ -93,6 +93,12 @@ dist/clearVotes: dist/ $(shell find . -iname "*.go")
 dist/clearVotesLambda.zip: dist/clearVotes
 	cd dist && zip clearVotesLambda.zip clearVotes
 
+dist/ping: dist/ $(shell find . -iname "*.go")
+	GOOS=linux go build -o dist/ping github.com/jonsabados/pointypoints/ping
+
+dist/pingLambda.zip: dist/ping
+	cd dist && zip pingLambda.zip ping
+
 build: frontend/dist/index.html dist/newSessionLambda.zip dist/connectLambda.zip dist/disconnectLambda.zip \
 	dist/loadFacilitatorSessionLambda.zip dist/loadSessionLambda.zip dist/joinSessionLambda.zip dist/voteLambda.zip \
-	dist/showVotesLambda.zip dist/clearVotesLambda.zip
+	dist/showVotesLambda.zip dist/clearVotesLambda.zip dist/pingLambda.zip

@@ -17,6 +17,7 @@ const (
 	FacilitatorSessionLoaded = MessageType("FACILITATOR_SESSION_LOADED")
 	SessionLoaded            = MessageType("SESSION_LOADED")
 	ErrorEncountered         = MessageType("ERROR_ENCOUNTERED")
+	Ping                     = MessageType("PING")
 )
 
 type ConnectionPoster interface {

@@ -85,7 +85,8 @@ resource "aws_apigatewayv2_deployment" "pointing" {
     module.joinSession_lambda,
     module.vote_lambda,
     module.showVotes_lambda,
-    module.clearVotes_lambda
+    module.clearVotes_lambda,
+    module.ping_lambda
   ]
 
   api_id = aws_apigatewayv2_api.pointing.id

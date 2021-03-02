@@ -6,6 +6,7 @@ const EVENT_TYPE_SESSION_CREATED = 'SESSION_CREATED'
 const FACILITATOR_SESSION_LOADED = 'FACILITATOR_SESSION_LOADED'
 const SESSION_LOADED = 'SESSION_LOADED'
 const SESSION_UPDATED = 'SESSION_UPDATED'
+const PING = 'PING'
 
 export interface JoinSessionRequest {
   action?: 'joinSession'
@@ -156,6 +157,11 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
 
   @Action
   initialize() {
+    setInterval(() => {
+      sendMessage(this.socket, {
+        action: 'ping'
+      })
+    }, 30000)
     this.socket.onerror = (ev) => {
       this.context.dispatch(AppStore.ACTION_REGISTER_REMOTE_ERROR, ev)
     }
@@ -196,6 +202,10 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
             }
           })
           this.context.commit(PointingSessionStore.MUTATION_SET_SESSIONS, newSessions)
+          break
+        }
+        case PING: {
+          console.log(`received ping with content: ${eventData.body}`)
           break
         }
         default:
