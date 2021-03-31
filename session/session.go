@@ -7,8 +7,18 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
+
+	"fmt"
 	"strconv"
+	"strings"
 	"time"
+)
+
+const (
+	sessionRecordRangeKeyValue      = "session"
+	facilitatorRecordRangeKeyValue  = "facilitator"
+	participantRecordRangeKeyPrefix = "user:"
 )
 
 type User struct {
@@ -68,7 +78,9 @@ type ParticipantSessionView struct {
 
 type DynamoClient interface {
 	GetItemWithContext(ctx aws.Context, input *dynamodb.GetItemInput, opts ...request.Option) (*dynamodb.GetItemOutput, error)
+	QueryWithContext(ctx aws.Context, input *dynamodb.QueryInput, opts ...request.Option) (*dynamodb.QueryOutput, error)
 	PutItemWithContext(ctx aws.Context, input *dynamodb.PutItemInput, opts ...request.Option) (*dynamodb.PutItemOutput, error)
+	TransactWriteItemsWithContext(ctx aws.Context, input *dynamodb.TransactWriteItemsInput, opts ...request.Option) (*dynamodb.TransactWriteItemsOutput, error)
 	DeleteItemWithContext(ctx aws.Context, input *dynamodb.DeleteItemInput, opts ...request.Option) (*dynamodb.DeleteItemOutput, error)
 }
 
@@ -106,21 +118,37 @@ func NewStarter(dynamo DynamoClient, tableName string, sessionExpiration time.Du
 	return func(ctx context.Context, toStart StartRequest) (CompleteSessionView, error) {
 		sessionID := uuid.New().String()
 		facilitatorSessionKey := uuid.New().String()
-		toPut := &dynamodb.PutItemInput{
+
+		expiration := &dynamodb.AttributeValue{N: aws.String(strconv.FormatInt(time.Now().Add(sessionExpiration).Unix(), 10))}
+
+		sessionPut := &dynamodb.Put{
 			TableName: aws.String(tableName),
 			Item: map[string]*dynamodb.AttributeValue{
 				"SessionID":             {S: aws.String(sessionID)},
+				"RangeKey":              {S: aws.String(sessionRecordRangeKeyValue)},
 				"VotesShown":            {BOOL: aws.Bool(false)},
 				"FacilitatorSessionKey": {S: aws.String(facilitatorSessionKey)},
-				"Facilitator":           {M: convertUser(toStart.Facilitator)},
 				"FacilitatorPoints":     {BOOL: aws.Bool(toStart.FacilitatorPoints)},
 				"Participants":          {L: []*dynamodb.AttributeValue{}},
-				"Expiration":            {N: aws.String(strconv.FormatInt(time.Now().Add(sessionExpiration).Unix(), 10))},
+				"Expiration":            expiration,
 			},
-			ConditionExpression: aws.String("attribute_not_exists(LockID)"),
 		}
 
-		_, err := dynamo.PutItemWithContext(ctx, toPut)
+		facilitatorPut := &dynamodb.Put{
+			TableName: aws.String(tableName),
+			Item:      convertUser(sessionID, facilitatorRecordRangeKeyValue, toStart.Facilitator, expiration),
+		}
+
+		_, err := dynamo.TransactWriteItemsWithContext(ctx, &dynamodb.TransactWriteItemsInput{
+			TransactItems: []*dynamodb.TransactWriteItem{
+				{
+					Put: sessionPut,
+				},
+				{
+					Put: facilitatorPut,
+				},
+			},
+		})
 		return CompleteSessionView{
 			SessionID:             sessionID,
 			FacilitatorSessionKey: facilitatorSessionKey,
@@ -135,25 +163,47 @@ type Saver func(ctx context.Context, toSave CompleteSessionView) error
 
 func NewSaver(dynamo DynamoClient, tableName string, notifyObservers ChangeNotifier, sessionExpiration time.Duration) Saver {
 	return func(ctx context.Context, toSave CompleteSessionView) error {
-		participants := make([]*dynamodb.AttributeValue, len(toSave.Participants))
-		for i, u := range toSave.Participants {
-			participants[i] = &dynamodb.AttributeValue{M: convertUser(u)}
-		}
-		toPut := &dynamodb.PutItemInput{
+		expiration := &dynamodb.AttributeValue{N: aws.String(strconv.FormatInt(time.Now().Add(sessionExpiration).Unix(), 10))}
+
+		sessionPut := &dynamodb.Put{
 			TableName: aws.String(tableName),
 			Item: map[string]*dynamodb.AttributeValue{
 				"SessionID":             {S: aws.String(toSave.SessionID)},
+				"RangeKey":              {S: aws.String(sessionRecordRangeKeyValue)},
 				"VotesShown":            {BOOL: aws.Bool(toSave.VotesShown)},
 				"FacilitatorSessionKey": {S: aws.String(toSave.FacilitatorSessionKey)},
-				"Facilitator":           {M: convertUser(toSave.Facilitator)},
 				"FacilitatorPoints":     {BOOL: aws.Bool(toSave.FacilitatorPoints)},
-				"Participants":          {L: participants},
 				"Expiration":            {N: aws.String(strconv.FormatInt(time.Now().Add(sessionExpiration).Unix(), 10))},
 			},
 			ConditionExpression: aws.String("attribute_not_exists(LockID)"),
 		}
 
-		_, err := dynamo.PutItemWithContext(ctx, toPut)
+		facilitatorPut := &dynamodb.Put{
+			TableName: aws.String(tableName),
+			Item:      convertUser(toSave.SessionID, facilitatorRecordRangeKeyValue, toSave.Facilitator, expiration),
+		}
+
+		transactItems := []*dynamodb.TransactWriteItem{
+			{
+				Put: sessionPut,
+			},
+			{
+				Put: facilitatorPut,
+			},
+		}
+
+		for _, u := range toSave.Participants {
+			transactItems = append(transactItems, &dynamodb.TransactWriteItem{
+				Put: &dynamodb.Put{
+					TableName: aws.String(tableName),
+					Item:      convertUser(toSave.SessionID, fmt.Sprintf("%s%s", participantRecordRangeKeyPrefix, u.SocketID), u, expiration),
+				},
+			})
+		}
+
+		_, err := dynamo.TransactWriteItemsWithContext(ctx, &dynamodb.TransactWriteItemsInput{
+			TransactItems: transactItems,
+		})
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -165,40 +215,56 @@ type Loader func(ctx context.Context, sessionID string) (*CompleteSessionView, e
 
 func NewLoader(dynamo DynamoClient, tableName string) Loader {
 	return func(ctx context.Context, sessionID string) (*CompleteSessionView, error) {
-		res, err := dynamo.GetItemWithContext(ctx, &dynamodb.GetItemInput{
+		res, err := dynamo.QueryWithContext(ctx, &dynamodb.QueryInput{
 			TableName: aws.String(tableName),
-			Key: map[string]*dynamodb.AttributeValue{
-				"SessionID": {S: aws.String(sessionID)},
+			KeyConditions: map[string]*dynamodb.Condition{
+				"SessionID": {
+					ComparisonOperator: aws.String("EQ"),
+					AttributeValueList: []*dynamodb.AttributeValue{
+						{S: aws.String(sessionID)},
+					},
+				},
 			},
 		})
+
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
-		if res.Item["SessionID"].S == nil {
+
+		if *res.Count == 0 {
 			return nil, nil
 		}
-		rawParticipants := res.Item["Participants"].L
-		participants := make([]User, len(rawParticipants))
-		for i, r := range rawParticipants {
-			participants[i] = readUser(r.M)
+
+		ret := &CompleteSessionView{}
+		for _, item := range res.Items {
+			rangeKey := *item["RangeKey"].S
+			if rangeKey == sessionRecordRangeKeyValue {
+				ret.SessionID = *item["SessionID"].S
+				ret.VotesShown = *item["VotesShown"].BOOL
+				ret.FacilitatorSessionKey = *item["FacilitatorSessionKey"].S
+				ret.FacilitatorPoints = *item["FacilitatorPoints"].BOOL
+			} else if rangeKey == facilitatorRecordRangeKeyValue {
+				ret.Facilitator = readUser(item)
+			} else if strings.HasPrefix(rangeKey, participantRecordRangeKeyPrefix) {
+				ret.Participants = append(ret.Participants, readUser(item))
+			} else {
+				zerolog.Ctx(ctx).Warn().Interface("record", item).Msg("unexpected record spotted")
+			}
 		}
-		return &CompleteSessionView{
-			SessionID:             *res.Item["SessionID"].S,
-			VotesShown:            *res.Item["VotesShown"].BOOL,
-			FacilitatorSessionKey: *res.Item["FacilitatorSessionKey"].S,
-			Facilitator:           readUser(res.Item["Facilitator"].M),
-			FacilitatorPoints:     *res.Item["FacilitatorPoints"].BOOL,
-			Participants:          participants,
-		}, nil
+
+		return ret, nil
 	}
 }
 
-func convertUser(u User) map[string]*dynamodb.AttributeValue {
+func convertUser(sessionID, rangeKey string, u User, expiration *dynamodb.AttributeValue) map[string]*dynamodb.AttributeValue {
 	ret := map[string]*dynamodb.AttributeValue{
-		"UserID":   {S: aws.String(u.UserID)},
-		"Name":     {S: aws.String(u.Name)},
-		"Handle":   {S: aws.String(u.Handle)},
-		"SocketID": {S: aws.String(u.SocketID)},
+		"SessionID":  {S: aws.String(sessionID)},
+		"RangeKey":   {S: aws.String(rangeKey)},
+		"UserID":     {S: aws.String(u.UserID)},
+		"Name":       {S: aws.String(u.Name)},
+		"Handle":     {S: aws.String(u.Handle)},
+		"SocketID":   {S: aws.String(u.SocketID)},
+		"Expiration": expiration,
 	}
 	if u.CurrentVote != nil {
 		ret["CurrentVote"] = &dynamodb.AttributeValue{S: u.CurrentVote}

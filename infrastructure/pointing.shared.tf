@@ -32,6 +32,7 @@ data "aws_iam_policy_document" "session_modifying_lambda_policy" {
     effect    = "Allow"
     actions   = [
       "dynamodb:GetItem",
+      "dynamodb:Query",
       "dynamodb:PutItem",
       "dynamodb:DescribeStream",
       "dynamodb:DescribeTable"
