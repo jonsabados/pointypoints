@@ -250,7 +250,11 @@ func NewLoader(dynamo DynamoClient, tableName string) Loader {
 			return nil, nil
 		}
 
-		ret := &CompleteSessionView{}
+		// if there are no participants we still want a non-nil list since every other language, including javascript
+		// will grenade if it works with a null list
+		ret := &CompleteSessionView{
+			Participants: make([]User, 0),
+		}
 		for _, item := range res.Items {
 			rangeKey := *item["RangeKey"].S
 			if rangeKey == sessionRecordRangeKeyValue {
