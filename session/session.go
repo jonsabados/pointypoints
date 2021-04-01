@@ -211,6 +211,21 @@ func NewSaver(dynamo DynamoClient, tableName string, notifyObservers ChangeNotif
 	}
 }
 
+type UserRemover func(ctx context.Context, sessionID string, connectionID string) error
+
+func NewUserRemover(dynamo DynamoClient, tableName string) UserRemover {
+	return func(ctx context.Context, sessionID string, connectionID string) error {
+		_, err := dynamo.DeleteItemWithContext(ctx, &dynamodb.DeleteItemInput{
+			TableName: aws.String(tableName),
+			Key: map[string]*dynamodb.AttributeValue{
+				"SessionID": {S: aws.String(sessionID)},
+				"RangeKey":  {S: aws.String(fmt.Sprintf("%s%s", participantRecordRangeKeyPrefix, connectionID))},
+			},
+		})
+		return errors.WithStack(err)
+	}
+}
+
 type Loader func(ctx context.Context, sessionID string) (*CompleteSessionView, error)
 
 func NewLoader(dynamo DynamoClient, tableName string) Loader {

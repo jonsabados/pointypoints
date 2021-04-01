@@ -33,6 +33,7 @@ data "aws_iam_policy_document" "session_modifying_lambda_policy" {
     actions   = [
       "dynamodb:GetItem",
       "dynamodb:Query",
+      "dynamodb:DeleteItem",
       "dynamodb:PutItem",
       "dynamodb:DescribeStream",
       "dynamodb:DescribeTable"

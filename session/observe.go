@@ -51,7 +51,7 @@ func connectionView(sess CompleteSessionView, connectionID string) interface{} {
 
 type Disconnector func(ctx context.Context, connectionID string) error
 
-func NewDisconnector(dynamo DynamoClient, tableName string, locker lock.GlobalLockAppropriator, loadSession Loader, saveSession Saver) Disconnector {
+func NewDisconnector(dynamo DynamoClient, tableName string, locker lock.GlobalLockAppropriator, loadSession Loader, removeUser UserRemover, notifyParticipants ChangeNotifier) Disconnector {
 	return func(ctx context.Context, connectionID string) error {
 		rec, err := dynamo.GetItemWithContext(ctx, &dynamodb.GetItemInput{
 			TableName: aws.String(tableName),
@@ -68,21 +68,20 @@ func NewDisconnector(dynamo DynamoClient, tableName string, locker lock.GlobalLo
 		}
 		for _, r := range rec.Item["Sessions"].L {
 			sessionID := *r.S
+			// so long as there are things operating on the session as a whole we still need to lock.
+			// But this section is now operating just on the individual user level.
 			err := locker.DoWithLock(ctx, lock.SessionLockKey(sessionID), func(ctx context.Context) error {
+				err := removeUser(ctx, sessionID, connectionID)
+				if err != nil {
+					return errors.WithStack(err)
+				}
+
 				sess, err := loadSession(ctx, sessionID)
 				if err != nil {
 					return errors.WithStack(err)
 				}
-				newUsers := make([]User, 0)
-				for _, u := range sess.Participants {
-					if u.SocketID != connectionID {
-						newUsers = append(newUsers, u)
-					} else {
-						zerolog.Ctx(ctx).Debug().Str("socketID", u.SocketID).Str("session", sess.SessionID).Msg("removing user from session")
-					}
-				}
-				sess.Participants = newUsers
-				return errors.WithStack(saveSession(ctx, *sess))
+
+				return errors.WithStack(notifyParticipants(ctx, *sess))
 			})
 			if err != nil {
 				return errors.WithStack(err)

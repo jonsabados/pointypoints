@@ -36,8 +36,8 @@ func main() {
 	loader := session.NewLoader(dynamo, lambdautil.SessionTable)
 	locker := lock.NewGlobalLockAppropriator(dynamo, lambdautil.LockTable, lambdautil.LockWaitTime, lambdautil.LockExpiration)
 	notifier := session.NewChangeNotifier(dynamo, lambdautil.WatcherTable, lambdautil.NewProdMessageDispatcher())
-	saveSess := session.NewSaver(dynamo, lambdautil.SessionTable, notifier, lambdautil.SessionTimeout)
-	disconnect := session.NewDisconnector(dynamo, lambdautil.InterestTable, locker, loader, saveSess)
+	removeUser := session.NewUserRemover(dynamo, lambdautil.SessionTable)
+	disconnect := session.NewDisconnector(dynamo, lambdautil.InterestTable, locker, loader, removeUser, notifier)
 
 	lambda.Start(NewHandler(logPreparer, disconnect))
 }
