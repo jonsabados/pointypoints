@@ -70,7 +70,7 @@ func main() {
 	dynamo := lambdautil.NewDynamoClient(sess)
 	loader := session.NewLoader(dynamo, lambdautil.SessionTable)
 	saver := session.NewUserSaver(dynamo, lambdautil.SessionTable, lambdautil.SessionTimeout)
-	notifier := session.NewChangeNotifier(dynamo, lambdautil.WatcherTable, lambdautil.NewProdMessageDispatcher())
+	notifier := session.NewChangeNotifier(dynamo, lambdautil.SessionTable, lambdautil.NewProdMessageDispatcher())
 
 	lambda.Start(NewHandler(logPreparer, loader, saver, notifier))
 }

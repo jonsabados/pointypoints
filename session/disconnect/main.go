@@ -35,9 +35,8 @@ func main() {
 
 	dynamo := lambdautil.NewDynamoClient(sess)
 	loader := session.NewLoader(dynamo, lambdautil.SessionTable)
-	notifier := session.NewChangeNotifier(dynamo, lambdautil.WatcherTable, lambdautil.NewProdMessageDispatcher())
-	removeUser := session.NewUserRemover(dynamo, lambdautil.SessionTable)
-	disconnect := session.NewDisconnector(dynamo, lambdautil.InterestTable, loader, removeUser, notifier)
+	notifier := session.NewChangeNotifier(dynamo, lambdautil.SessionTable, lambdautil.NewProdMessageDispatcher())
+	disconnect := session.NewDisconnector(dynamo, lambdautil.SessionTable, lambdautil.SessionSocketIndex, loader, notifier)
 
 	lambda.Start(NewHandler(logPreparer, disconnect))
 }

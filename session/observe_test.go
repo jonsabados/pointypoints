@@ -65,79 +65,20 @@ func Test_NewChangeNotifier_ErrorLoadingWatchers(t *testing.T) {
 		return nil
 	})
 
-	dynamo.On("GetItemWithContext", inputCtx, &dynamodb.GetItemInput{
+	dynamo.On("QueryWithContext", inputCtx, &dynamodb.QueryInput{
 		TableName: aws.String(tableName),
-		Key: map[string]*dynamodb.AttributeValue{
-			"SessionID": {S: aws.String(sessionID)},
+		KeyConditions: map[string]*dynamodb.Condition{
+			"SessionID": {
+				ComparisonOperator: aws.String("EQ"),
+				AttributeValueList: []*dynamodb.AttributeValue{
+					{S: aws.String(sessionID)},
+				},
+			},
 		},
 	}, emptyOpts).Return(nil, errors.New(expectedError))
 
 	err := NewChangeNotifier(dynamo, tableName, dispatcher)(inputCtx, input)
 	asserter.EqualError(err, expectedError)
-}
-
-func Test_NewChangeNotifier_SessionNotFound(t *testing.T) {
-	asserter := assert.New(t)
-
-	inputCtx := testutil.NewTestContext()
-
-	dynamo := &testutil.MockDynamoClient{}
-	tableName := "watchers"
-
-	sessionID := "abcdefg"
-
-	facilitatorConnectionID := "facilitator"
-	facilitatorSessionKey := "bobsuruncle"
-
-	userAConnectionID := "aaaaaaaa"
-	userBConnectionID := "bbbbbbbb"
-
-	input := CompleteSessionView{
-		SessionID:             sessionID,
-		VotesShown:            true,
-		FacilitatorSessionKey: facilitatorSessionKey,
-		Facilitator: User{
-			UserID:      "someUUIDFacilitator",
-			Name:        "Bob",
-			Handle:      "TheTester",
-			CurrentVote: nil,
-			SocketID:    facilitatorConnectionID,
-		},
-		FacilitatorPoints: true,
-		Participants: []User{
-			{
-				UserID:      "someUUIDA",
-				Name:        "A",
-				Handle:      "AAA",
-				CurrentVote: aws.String("1"),
-				SocketID:    userAConnectionID,
-			},
-			{
-				UserID:      "someUUIDB",
-				Name:        "B",
-				Handle:      "BBB",
-				CurrentVote: aws.String("B"),
-				SocketID:    userBConnectionID,
-			},
-		},
-	}
-
-	dispatcher := api.MessageDispatcher(func(ctx context.Context, connectionID string, message api.Message) error {
-		asserter.Fail("nothing should have been dispatched")
-		return nil
-	})
-
-	dynamo.On("GetItemWithContext", inputCtx, &dynamodb.GetItemInput{
-		TableName: aws.String(tableName),
-		Key: map[string]*dynamodb.AttributeValue{
-			"SessionID": {S: aws.String(sessionID)},
-		},
-	}, emptyOpts).Return(&dynamodb.GetItemOutput{
-
-	}, nil)
-
-	err := NewChangeNotifier(dynamo, tableName, dispatcher)(inputCtx, input)
-	asserter.EqualError(err, "session not found")
 }
 
 func Test_NewChangeNotifier_VotesShown(t *testing.T) {
@@ -202,20 +143,33 @@ func Test_NewChangeNotifier_VotesShown(t *testing.T) {
 		return nil
 	})
 
-	dynamo.On("GetItemWithContext", inputCtx, &dynamodb.GetItemInput{
+	dynamo.On("QueryWithContext", inputCtx, &dynamodb.QueryInput{
 		TableName: aws.String(tableName),
-		Key: map[string]*dynamodb.AttributeValue{
-			"SessionID": {S: aws.String(sessionID)},
+		KeyConditions: map[string]*dynamodb.Condition{
+			"SessionID": {
+				ComparisonOperator: aws.String("EQ"),
+				AttributeValueList: []*dynamodb.AttributeValue{
+					{S: aws.String(sessionID)},
+				},
+			},
 		},
-	}, emptyOpts).Return(&dynamodb.GetItemOutput{
-		Item: map[string]*dynamodb.AttributeValue{
-			"SessionID": {S: &sessionID},
-			"Connections": {L: []*dynamodb.AttributeValue{
-				{S: aws.String(facilitator.SocketID)},
-				{S: aws.String(userA.SocketID)},
-				{S: aws.String(userB.SocketID)},
-				{S: aws.String(goneConnectionID)},
-			}},
+	}, emptyOpts).Return(&dynamodb.QueryOutput{
+		Items: []map[string]*dynamodb.AttributeValue{
+			{
+				"SessionID": {S: aws.String("I'm the session record and don't have a socket")},
+			},
+			{
+				"SocketID": {S: aws.String(facilitator.SocketID)},
+			},
+			{
+				"SocketID": {S: aws.String(userA.SocketID)},
+			},
+			{
+				"SocketID": {S: aws.String(userB.SocketID)},
+			},
+			{
+				"SocketID": {S: aws.String(goneConnectionID)},
+			},
 		},
 	}, nil)
 
@@ -367,20 +321,33 @@ func Test_NewChangeNotifier_VotesHidden(t *testing.T) {
 		return nil
 	})
 
-	dynamo.On("GetItemWithContext", inputCtx, &dynamodb.GetItemInput{
+	dynamo.On("QueryWithContext", inputCtx, &dynamodb.QueryInput{
 		TableName: aws.String(tableName),
-		Key: map[string]*dynamodb.AttributeValue{
-			"SessionID": {S: aws.String(sessionID)},
+		KeyConditions: map[string]*dynamodb.Condition{
+			"SessionID": {
+				ComparisonOperator: aws.String("EQ"),
+				AttributeValueList: []*dynamodb.AttributeValue{
+					{S: aws.String(sessionID)},
+				},
+			},
 		},
-	}, emptyOpts).Return(&dynamodb.GetItemOutput{
-		Item: map[string]*dynamodb.AttributeValue{
-			"SessionID": {S: &sessionID},
-			"Connections": {L: []*dynamodb.AttributeValue{
-				{S: aws.String(facilitator.SocketID)},
-				{S: aws.String(userA.SocketID)},
-				{S: aws.String(userB.SocketID)},
-				{S: aws.String(goneConnectionID)},
-			}},
+	}, emptyOpts).Return(&dynamodb.QueryOutput{
+		Items: []map[string]*dynamodb.AttributeValue{
+			{
+				"SessionID": {S: aws.String("I'm the session record and don't have a socket")},
+			},
+			{
+				"SocketID": {S: aws.String(facilitator.SocketID)},
+			},
+			{
+				"SocketID": {S: aws.String(userA.SocketID)},
+			},
+			{
+				"SocketID": {S: aws.String(userB.SocketID)},
+			},
+			{
+				"SocketID": {S: aws.String(goneConnectionID)},
+			},
 		},
 	}, nil)
 

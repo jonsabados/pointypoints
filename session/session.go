@@ -26,6 +26,7 @@ const (
 	sessionRecordRangeKeyValue      = "session"
 	facilitatorRecordRangeKeyValue  = "facilitator"
 	participantRecordRangeKeyPrefix = "user:"
+	watcherRecordRangeKeyPrefix     = "watcher:"
 )
 
 type User struct {
@@ -136,7 +137,6 @@ func NewStarter(dynamo DynamoClient, tableName string, sessionExpiration time.Du
 				"VotesShown":            {BOOL: aws.Bool(false)},
 				"FacilitatorSessionKey": {S: aws.String(facilitatorSessionKey)},
 				"FacilitatorPoints":     {BOOL: aws.Bool(toStart.FacilitatorPoints)},
-				"Participants":          {L: []*dynamodb.AttributeValue{}},
 				"Expiration":            expiration,
 			},
 		}
@@ -223,25 +223,23 @@ func NewUserSaver(dynamo DynamoClient, tableName string, sessionExpiration time.
 	return func(ctx context.Context, sessionID string, user User, userType UserType) error {
 		expiration := &dynamodb.AttributeValue{N: aws.String(strconv.FormatInt(time.Now().Add(sessionExpiration).Unix(), 10))}
 
-		_, err := dynamo.PutItemWithContext(ctx, &dynamodb.PutItemInput{
-			TableName: aws.String(tableName),
-			Item:      convertUser(sessionID, userType, user, expiration),
-		})
-		return errors.WithStack(err)
-	}
-}
-
-type UserRemover func(ctx context.Context, sessionID string, connectionID string) error
-
-func NewUserRemover(dynamo DynamoClient, tableName string) UserRemover {
-	return func(ctx context.Context, sessionID string, connectionID string) error {
+		// swap watcher for user
 		_, err := dynamo.DeleteItemWithContext(ctx, &dynamodb.DeleteItemInput{
 			TableName: aws.String(tableName),
 			Key: map[string]*dynamodb.AttributeValue{
 				"SessionID": {S: aws.String(sessionID)},
-				"RangeKey":  {S: aws.String(fmt.Sprintf("%s%s", participantRecordRangeKeyPrefix, connectionID))},
+				"RangeKey":  {S: aws.String(fmt.Sprintf("%s%s", watcherRecordRangeKeyPrefix, user.SocketID))},
 			},
 		})
+		if err != nil {
+			return errors.WithStack(err)
+		}
+
+		_, err = dynamo.PutItemWithContext(ctx, &dynamodb.PutItemInput{
+			TableName: aws.String(tableName),
+			Item:      convertUser(sessionID, userType, user, expiration),
+		})
+
 		return errors.WithStack(err)
 	}
 }
@@ -286,7 +284,7 @@ func NewLoader(dynamo DynamoClient, tableName string) Loader {
 				ret.Facilitator = readUser(item)
 			} else if strings.HasPrefix(rangeKey, participantRecordRangeKeyPrefix) {
 				ret.Participants = append(ret.Participants, readUser(item))
-			} else {
+			} else if !strings.HasPrefix(rangeKey, watcherRecordRangeKeyPrefix) {
 				zerolog.Ctx(ctx).Warn().Interface("record", item).Msg("unexpected record spotted")
 			}
 		}

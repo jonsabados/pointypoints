@@ -13,16 +13,10 @@ import (
 	"github.com/jonsabados/pointypoints/api"
 )
 
-const LockWaitTime = time.Millisecond * 5
-// LockExpiration defines What the expiration of locks should be set to in dynamo. For now just match default lambda
-// execution time, this could be smarter and driven by env var or something but :shrug: for now.
-const LockExpiration = time.Second * 3
-const SessionTimeout = time.Hour
+const SessionTimeout = time.Hour * 4
 
 var SessionTable = os.Getenv("SESSION_TABLE")
-var LockTable = os.Getenv("LOCK_TABLE")
-var WatcherTable = os.Getenv("WATCHER_TABLE")
-var InterestTable = os.Getenv("INTEREST_TABLE")
+var SessionSocketIndex = os.Getenv("SESSION_SOCKET_INDEX")
 
 func CoreStartup() {
 	err := xray.Configure(xray.Config{

@@ -11,7 +11,6 @@ import (
 
 	"github.com/jonsabados/pointypoints/api"
 	"github.com/jonsabados/pointypoints/lambdautil"
-	"github.com/jonsabados/pointypoints/lock"
 	"github.com/jonsabados/pointypoints/logging"
 	"github.com/jonsabados/pointypoints/session"
 )
@@ -21,7 +20,7 @@ type LoadResponse struct {
 	MarkActive bool                        `json:"markActive"`
 }
 
-func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, dispatch api.MessageDispatcher, recordInterest session.InterestRecorder, saveUser session.UserSaver) func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
+func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, dispatch api.MessageDispatcher, saveUser session.UserSaver) func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
 		ctx = prepareLogs(ctx)
 		l := new(session.LoadFacilitatorSessionRequest)
@@ -51,11 +50,6 @@ func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, dispat
 			return api.NewInternalServerError(ctx), nil
 		}
 
-		err = recordInterest(ctx, sess.SessionID, request.RequestContext.ConnectionID)
-		if err != nil {
-			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error recording interest")
-			return api.NewInternalServerError(ctx), nil
-		}
 		err = dispatch(ctx, request.RequestContext.ConnectionID, api.Message{
 			Type: api.FacilitatorSessionLoaded,
 			Body: LoadResponse{
@@ -78,10 +72,8 @@ func main() {
 
 	dynamo := lambdautil.NewDynamoClient(sess)
 	loader := session.NewLoader(dynamo, lambdautil.SessionTable)
-	locker := lock.NewGlobalLockAppropriator(dynamo, lambdautil.LockTable, lambdautil.LockWaitTime, lambdautil.LockExpiration)
 	dispatcher := lambdautil.NewProdMessageDispatcher()
-	interestRecorder := session.NewInterestRecorder(dynamo, lambdautil.InterestTable, lambdautil.WatcherTable, locker, lambdautil.SessionTimeout)
-	userSaver := session.NewUserSaver(dynamo, lambdautil.SessionTable, lambdautil.LockExpiration)
+	userSaver := session.NewUserSaver(dynamo, lambdautil.SessionTable, lambdautil.SessionTimeout)
 
-	lambda.Start(NewHandler(logPreparer, loader, dispatcher, interestRecorder, userSaver))
+	lambda.Start(NewHandler(logPreparer, loader, dispatcher, userSaver))
 }
