@@ -3,14 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
+
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/rs/zerolog"
+
 	"github.com/jonsabados/pointypoints/api"
 	"github.com/jonsabados/pointypoints/lambdautil"
-	"github.com/jonsabados/pointypoints/lock"
 	"github.com/jonsabados/pointypoints/logging"
 	"github.com/jonsabados/pointypoints/session"
-	"github.com/rs/zerolog"
 )
 
 func NewHandler(prepareLogs logging.Preparer, disconnect session.Disconnector) func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -34,10 +35,9 @@ func main() {
 
 	dynamo := lambdautil.NewDynamoClient(sess)
 	loader := session.NewLoader(dynamo, lambdautil.SessionTable)
-	locker := lock.NewGlobalLockAppropriator(dynamo, lambdautil.LockTable, lambdautil.LockWaitTime, lambdautil.LockExpiration)
 	notifier := session.NewChangeNotifier(dynamo, lambdautil.WatcherTable, lambdautil.NewProdMessageDispatcher())
 	removeUser := session.NewUserRemover(dynamo, lambdautil.SessionTable)
-	disconnect := session.NewDisconnector(dynamo, lambdautil.InterestTable, locker, loader, removeUser, notifier)
+	disconnect := session.NewDisconnector(dynamo, lambdautil.InterestTable, loader, removeUser, notifier)
 
 	lambda.Start(NewHandler(logPreparer, disconnect))
 }

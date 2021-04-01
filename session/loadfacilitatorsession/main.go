@@ -4,14 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/rs/zerolog"
+
 	"github.com/jonsabados/pointypoints/api"
 	"github.com/jonsabados/pointypoints/lambdautil"
 	"github.com/jonsabados/pointypoints/lock"
 	"github.com/jonsabados/pointypoints/logging"
 	"github.com/jonsabados/pointypoints/session"
-	"github.com/rs/zerolog"
 )
 
 type LoadResponse struct {
@@ -19,7 +21,7 @@ type LoadResponse struct {
 	MarkActive bool                        `json:"markActive"`
 }
 
-func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, dispatch api.MessageDispatcher, recordInterest session.InterestRecorder, locker lock.GlobalLockAppropriator, saveSession session.Saver) func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
+func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, dispatch api.MessageDispatcher, recordInterest session.InterestRecorder, saveUser session.UserSaver) func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
 		ctx = prepareLogs(ctx)
 		l := new(session.LoadFacilitatorSessionRequest)
@@ -29,18 +31,6 @@ func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, dispat
 			return api.NewInternalServerError(ctx), nil
 		}
 
-		// will need to update the facilitator connection id
-		lck, err := locker(ctx, lock.SessionLockKey(l.SessionID))
-		if err != nil {
-			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error locking session")
-			return api.NewInternalServerError(ctx), nil
-		}
-		defer func() {
-			err := lck.Unlock(ctx)
-			if err != nil {
-				zerolog.Ctx(ctx).Error().Str("errpr", fmt.Sprintf("%+v", err)).Msg("error releasing lock")
-			}
-		}()
 		sess, err := loadSession(ctx, l.SessionID)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error reading session")
@@ -53,13 +43,13 @@ func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, dispat
 			zerolog.Ctx(ctx).Warn().Msg("attempt to load session as facilitator with invalid facilitator key")
 			return api.NewPermissionDeniedResponse(ctx), nil
 		}
+
 		sess.Facilitator.SocketID = request.RequestContext.ConnectionID
-		err = saveSession(ctx, *sess)
+		err = saveUser(ctx, l.SessionID, sess.Facilitator, session.Facilitator)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error saving session")
 			return api.NewInternalServerError(ctx), nil
 		}
-
 
 		err = recordInterest(ctx, sess.SessionID, request.RequestContext.ConnectionID)
 		if err != nil {
@@ -90,9 +80,8 @@ func main() {
 	loader := session.NewLoader(dynamo, lambdautil.SessionTable)
 	locker := lock.NewGlobalLockAppropriator(dynamo, lambdautil.LockTable, lambdautil.LockWaitTime, lambdautil.LockExpiration)
 	dispatcher := lambdautil.NewProdMessageDispatcher()
-	notifier := session.NewChangeNotifier(dynamo, lambdautil.WatcherTable, dispatcher)
 	interestRecorder := session.NewInterestRecorder(dynamo, lambdautil.InterestTable, lambdautil.WatcherTable, locker, lambdautil.SessionTimeout)
-	saver := session.NewSaver(dynamo, lambdautil.SessionTable, notifier, lambdautil.SessionTimeout)
+	userSaver := session.NewUserSaver(dynamo, lambdautil.SessionTable, lambdautil.LockExpiration)
 
-	lambda.Start(NewHandler(logPreparer, loader, dispatcher, interestRecorder, locker, saver))
+	lambda.Start(NewHandler(logPreparer, loader, dispatcher, interestRecorder, userSaver))
 }

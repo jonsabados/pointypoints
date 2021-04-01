@@ -4,17 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/rs/zerolog"
+
 	"github.com/jonsabados/pointypoints/api"
 	"github.com/jonsabados/pointypoints/lambdautil"
-	"github.com/jonsabados/pointypoints/lock"
 	"github.com/jonsabados/pointypoints/logging"
 	"github.com/jonsabados/pointypoints/session"
-	"github.com/rs/zerolog"
 )
 
-func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, locker lock.GlobalLockAppropriator, saveSession session.Saver) func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
+func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, saveUser session.UserSaver, notifyParticipants session.ChangeNotifier) func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayWebsocketProxyRequest) (events.APIGatewayProxyResponse, error) {
 		ctx = prepareLogs(ctx)
 		j := new(session.JoinSessionRequest)
@@ -37,35 +38,25 @@ func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, locker
 			}), nil
 		}
 
-		recordLock, err := locker(ctx, lock.SessionLockKey(j.SessionID))
+		newUser := j.User
+		newUser.SocketID = request.RequestContext.ConnectionID
+		err = saveUser(ctx, j.SessionID, newUser, session.Participant)
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error locking session")
+			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error saving session")
 			return api.NewInternalServerError(ctx), nil
 		}
-		defer func() {
-			err := recordLock.Unlock(ctx)
-			if err != nil {
-				zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("unable to release lock")
-			}
-		}()
+
 		sess, err := loadSession(ctx, j.SessionID)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error reading session")
 			return api.NewPermissionDeniedResponse(ctx), nil
 		}
-		if sess == nil {
-			zerolog.Ctx(ctx).Warn().Str("sessionID", j.SessionID).Msg("session not found")
+		err = notifyParticipants(ctx, *sess)
+		if err != nil {
+			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error notifying participants of change")
 			return api.NewPermissionDeniedResponse(ctx), nil
 		}
 
-		newUser := j.User
-		newUser.SocketID = request.RequestContext.ConnectionID
-		sess.Participants = append(sess.Participants, newUser)
-		err = saveSession(ctx, *sess)
-		if err != nil {
-			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error saving session")
-			return api.NewInternalServerError(ctx), nil
-		}
 		return api.NewSuccessResponse(ctx, sess), nil
 	}
 }
@@ -78,9 +69,8 @@ func main() {
 
 	dynamo := lambdautil.NewDynamoClient(sess)
 	loader := session.NewLoader(dynamo, lambdautil.SessionTable)
-	locker := lock.NewGlobalLockAppropriator(dynamo, lambdautil.LockTable, lambdautil.LockWaitTime, lambdautil.LockExpiration)
+	saver := session.NewUserSaver(dynamo, lambdautil.SessionTable, lambdautil.SessionTimeout)
 	notifier := session.NewChangeNotifier(dynamo, lambdautil.WatcherTable, lambdautil.NewProdMessageDispatcher())
-	saveSess := session.NewSaver(dynamo, lambdautil.SessionTable, notifier, lambdautil.SessionTimeout)
 
-	lambda.Start(NewHandler(logPreparer, loader, locker, saveSess))
+	lambda.Start(NewHandler(logPreparer, loader, saver, notifier))
 }

@@ -2,17 +2,24 @@ package session
 
 import (
 	"context"
+	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
+)
 
-	"fmt"
-	"strconv"
-	"strings"
-	"time"
+type UserType int
+
+const (
+	Facilitator UserType = iota
+	Participant
 )
 
 const (
@@ -136,7 +143,7 @@ func NewStarter(dynamo DynamoClient, tableName string, sessionExpiration time.Du
 
 		facilitatorPut := &dynamodb.Put{
 			TableName: aws.String(tableName),
-			Item:      convertUser(sessionID, facilitatorRecordRangeKeyValue, toStart.Facilitator, expiration),
+			Item:      convertUser(sessionID, Facilitator, toStart.Facilitator, expiration),
 		}
 
 		_, err := dynamo.TransactWriteItemsWithContext(ctx, &dynamodb.TransactWriteItemsInput{
@@ -175,12 +182,11 @@ func NewSaver(dynamo DynamoClient, tableName string, notifyObservers ChangeNotif
 				"FacilitatorPoints":     {BOOL: aws.Bool(toSave.FacilitatorPoints)},
 				"Expiration":            {N: aws.String(strconv.FormatInt(time.Now().Add(sessionExpiration).Unix(), 10))},
 			},
-			ConditionExpression: aws.String("attribute_not_exists(LockID)"),
 		}
 
 		facilitatorPut := &dynamodb.Put{
 			TableName: aws.String(tableName),
-			Item:      convertUser(toSave.SessionID, facilitatorRecordRangeKeyValue, toSave.Facilitator, expiration),
+			Item:      convertUser(toSave.SessionID, Facilitator, toSave.Facilitator, expiration),
 		}
 
 		transactItems := []*dynamodb.TransactWriteItem{
@@ -196,7 +202,7 @@ func NewSaver(dynamo DynamoClient, tableName string, notifyObservers ChangeNotif
 			transactItems = append(transactItems, &dynamodb.TransactWriteItem{
 				Put: &dynamodb.Put{
 					TableName: aws.String(tableName),
-					Item:      convertUser(toSave.SessionID, fmt.Sprintf("%s%s", participantRecordRangeKeyPrefix, u.SocketID), u, expiration),
+					Item:      convertUser(toSave.SessionID, Participant, u, expiration),
 				},
 			})
 		}
@@ -208,6 +214,20 @@ func NewSaver(dynamo DynamoClient, tableName string, notifyObservers ChangeNotif
 			return errors.WithStack(err)
 		}
 		return errors.WithStack(notifyObservers(ctx, toSave))
+	}
+}
+
+type UserSaver func(ctx context.Context, sessionID string, user User, userType UserType) error
+
+func NewUserSaver(dynamo DynamoClient, tableName string, sessionExpiration time.Duration) UserSaver {
+	return func(ctx context.Context, sessionID string, user User, userType UserType) error {
+		expiration := &dynamodb.AttributeValue{N: aws.String(strconv.FormatInt(time.Now().Add(sessionExpiration).Unix(), 10))}
+
+		_, err := dynamo.PutItemWithContext(ctx, &dynamodb.PutItemInput{
+			TableName: aws.String(tableName),
+			Item:      convertUser(sessionID, userType, user, expiration),
+		})
+		return errors.WithStack(err)
 	}
 }
 
@@ -275,10 +295,21 @@ func NewLoader(dynamo DynamoClient, tableName string) Loader {
 	}
 }
 
-func convertUser(sessionID, rangeKey string, u User, expiration *dynamodb.AttributeValue) map[string]*dynamodb.AttributeValue {
+func userRangeKey(user User, userType UserType) *dynamodb.AttributeValue {
+	switch userType {
+	case Facilitator:
+		return &dynamodb.AttributeValue{S: aws.String(facilitatorRecordRangeKeyValue)}
+	case Participant:
+		return &dynamodb.AttributeValue{S: aws.String(fmt.Sprintf("%s%s", participantRecordRangeKeyPrefix, user.SocketID))}
+	default:
+		panic(fmt.Sprintf("unknown user type %d", userType))
+	}
+}
+
+func convertUser(sessionID string, userType UserType, u User, expiration *dynamodb.AttributeValue) map[string]*dynamodb.AttributeValue {
 	ret := map[string]*dynamodb.AttributeValue{
 		"SessionID":  {S: aws.String(sessionID)},
-		"RangeKey":   {S: aws.String(rangeKey)},
+		"RangeKey":   userRangeKey(u, userType),
 		"UserID":     {S: aws.String(u.UserID)},
 		"Name":       {S: aws.String(u.Name)},
 		"Handle":     {S: aws.String(u.Handle)},
