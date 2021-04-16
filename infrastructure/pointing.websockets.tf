@@ -4,7 +4,7 @@ resource "aws_cloudwatch_log_group" "websockets_gateway_logs" {
 }
 
 resource "aws_acm_certificate" "websockets_pointing_cert" {
-  domain_name       = "${local.workspace_prefix}pointing.${data.aws_ssm_parameter.domain_name.value}"
+  domain_name       = "${local.workspace_prefix}pointing-events.${data.aws_ssm_parameter.domain_name.value}"
   validation_method = "DNS"
 
   tags = {
@@ -22,7 +22,7 @@ resource "aws_route53_record" "pointing_cert_cert_verification_record" {
 }
 
 resource "aws_apigatewayv2_api" "websockets_pointing" {
-  name                       = "${local.workspace_prefix}pointing"
+  name                       = "${local.workspace_prefix}pointing-events"
   protocol_type              = "WEBSOCKET"
   route_selection_expression = "$request.body.action"
 
@@ -77,7 +77,7 @@ resource "aws_apigatewayv2_api_mapping" "websockets_pointing" {
 }
 
 resource "aws_apigatewayv2_domain_name" "websockets_pointing" {
-  domain_name = "${local.workspace_prefix}pointing.${data.aws_ssm_parameter.domain_name.value}"
+  domain_name = "${local.workspace_prefix}pointing-events.${data.aws_ssm_parameter.domain_name.value}"
 
   domain_name_configuration {
     certificate_arn = aws_acm_certificate.websockets_pointing_cert.arn

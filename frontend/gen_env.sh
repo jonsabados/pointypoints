@@ -9,4 +9,4 @@ if [ $WORKSPACE != 'default' ]; then
   DOMAIN_PREFIX="${WORKSPACE}-"
 fi
 
-echo "VUE_APP_POINTING_SOCKET_URL=wss://${DOMAIN_PREFIX}pointing.${DOMAIN}" >> .env.local
+echo "VUE_APP_POINTING_SOCKET_URL=wss://${DOMAIN_PREFIX}pointing-events.${DOMAIN}" >> .env.local
