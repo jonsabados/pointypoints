@@ -34,7 +34,7 @@ data "aws_iam_policy_document" "ping_lambda_policy" {
       "execute-api:ManageConnections"
     ]
     resources = [
-      "arn:aws:execute-api:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${aws_apigatewayv2_api.pointing.id}/*"
+      "arn:aws:execute-api:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${aws_apigatewayv2_api.websockets_pointing.id}/*"
     ]
   }
 }
@@ -44,7 +44,7 @@ module "ping_lambda" {
 
   aws_region = var.aws_region
 
-  api_id = aws_apigatewayv2_api.pointing.id
+  api_id = aws_apigatewayv2_api.websockets_pointing.id
   name   = "ping"
   route  = "ping"
 
@@ -53,6 +53,6 @@ module "ping_lambda" {
   lambda_env = {
     LOG_LEVEL        = "info"
     REGION           = var.aws_region
-    GATEWAY_ENDPOINT = "https://${aws_apigatewayv2_api.pointing.id}.execute-api.${var.aws_region}.amazonaws.com/${local.workspace_prefix}pointing-main/"
+    GATEWAY_ENDPOINT = "https://${aws_apigatewayv2_api.websockets_pointing.id}.execute-api.${var.aws_region}.amazonaws.com/${local.workspace_prefix}pointing-main/"
   }
 }

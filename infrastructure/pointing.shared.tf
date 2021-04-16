@@ -61,7 +61,7 @@ data "aws_iam_policy_document" "session_modifying_lambda_policy" {
       "execute-api:ManageConnections"
     ]
     resources = [
-      "arn:aws:execute-api:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${aws_apigatewayv2_api.pointing.id}/*"
+      "arn:aws:execute-api:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${aws_apigatewayv2_api.websockets_pointing.id}/*"
     ]
   }
 }
@@ -69,7 +69,7 @@ data "aws_iam_policy_document" "session_modifying_lambda_policy" {
 locals {
   session_modifying_lambda_env = {
     REGION               = var.aws_region
-    GATEWAY_ENDPOINT     = "https://${aws_apigatewayv2_api.pointing.id}.execute-api.${var.aws_region}.amazonaws.com/${local.workspace_prefix}pointing-main/"
+    GATEWAY_ENDPOINT     = "https://${aws_apigatewayv2_api.websockets_pointing.id}.execute-api.${var.aws_region}.amazonaws.com/${local.workspace_prefix}pointing-main/"
     SESSION_TABLE        = aws_dynamodb_table.session_store.name
     SESSION_SOCKET_INDEX = local.session_socket_index_name
     LOG_LEVEL            = "info"

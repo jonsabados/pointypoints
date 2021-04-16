@@ -3,7 +3,7 @@ module "vote_lambda" {
 
   aws_region = var.aws_region
 
-  api_id = aws_apigatewayv2_api.pointing.id
+  api_id = aws_apigatewayv2_api.websockets_pointing.id
   name   = "vote"
   route  = "vote"
 
