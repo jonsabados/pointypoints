@@ -1,5 +1,5 @@
 module "loadFacilitatorSession_lambda" {
-  source = "./endpoint"
+  source = "./websocket-route"
 
   aws_region = var.aws_region
 

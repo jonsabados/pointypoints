@@ -10,3 +10,4 @@ if [ $WORKSPACE != 'default' ]; then
 fi
 
 echo "VUE_APP_POINTING_SOCKET_URL=wss://${DOMAIN_PREFIX}pointing-events.${DOMAIN}" >> .env.local
+echo "VUE_APP_POINTING_REST_API_URL=https://${DOMAIN_PREFIX}pointing.${DOMAIN}" >> .env.local

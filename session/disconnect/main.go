@@ -3,12 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/rs/zerolog"
 
-	"github.com/jonsabados/pointypoints/api"
 	"github.com/jonsabados/pointypoints/lambdautil"
 	"github.com/jonsabados/pointypoints/logging"
 	"github.com/jonsabados/pointypoints/session"
@@ -21,9 +21,13 @@ func NewHandler(prepareLogs logging.Preparer, disconnect session.Disconnector) f
 		err := disconnect(ctx, request.RequestContext.ConnectionID)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error disconnecting user")
-			return api.NewInternalServerError(ctx), nil
+			return events.APIGatewayProxyResponse{
+				StatusCode: http.StatusInternalServerError,
+			}, nil
 		}
-		return api.NewSuccessResponse(ctx, "OK"), nil
+		return events.APIGatewayProxyResponse{
+			StatusCode: http.StatusNoContent,
+		}, nil
 	}
 }
 

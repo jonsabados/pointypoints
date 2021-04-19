@@ -44,7 +44,7 @@ data "aws_iam_policy_document" "session_modifying_lambda_policy" {
   }
 
   statement {
-    sid = "AllowSessionSocketIndexQuery"
+    sid       = "AllowSessionSocketIndexQuery"
     effect    = "Allow"
     actions   = [
       "dynamodb:Query"
@@ -73,5 +73,6 @@ locals {
     SESSION_TABLE        = aws_dynamodb_table.session_store.name
     SESSION_SOCKET_INDEX = local.session_socket_index_name
     LOG_LEVEL            = "info"
+    ALLOWED_ORIGINS      = "https://${aws_acm_certificate.ui_cert.domain_name},https://${aws_acm_certificate.ui_cert.subject_alternative_names[0]},http://localhost:8080"
   }
 }

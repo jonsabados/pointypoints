@@ -27,27 +27,27 @@ func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, dispat
 		err := json.Unmarshal([]byte(request.Body), l)
 		if err != nil {
 			zerolog.Ctx(ctx).Warn().Str("error", fmt.Sprintf("%+v", err)).Msg("error reading load request body")
-			return api.NewInternalServerError(ctx), nil
+			return api.NewInternalServerError(ctx, nil), nil
 		}
 
 		sess, err := loadSession(ctx, l.SessionID)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error reading session")
-			return api.NewInternalServerError(ctx), nil
+			return api.NewInternalServerError(ctx, nil), nil
 		}
 		if sess == nil {
 			zerolog.Ctx(ctx).Warn().Str("sessionID", l.SessionID).Msg("session not found")
 		}
 		if sess.FacilitatorSessionKey != l.FacilitatorSessionKey {
 			zerolog.Ctx(ctx).Warn().Msg("attempt to load session as facilitator with invalid facilitator key")
-			return api.NewPermissionDeniedResponse(ctx), nil
+			return api.NewPermissionDeniedResponse(ctx, nil), nil
 		}
 
 		sess.Facilitator.SocketID = request.RequestContext.ConnectionID
 		err = saveUser(ctx, l.SessionID, sess.Facilitator, session.Facilitator)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error saving session")
-			return api.NewInternalServerError(ctx), nil
+			return api.NewInternalServerError(ctx, nil), nil
 		}
 
 		err = dispatch(ctx, request.RequestContext.ConnectionID, api.Message{
@@ -60,7 +60,7 @@ func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, dispat
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error dispatching message")
 		}
-		return api.NewSuccessResponse(ctx, sess), nil
+		return api.NewSuccessResponse(ctx, nil, sess), nil
 	}
 }
 

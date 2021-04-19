@@ -22,21 +22,21 @@ func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, saveWa
 		err := json.Unmarshal([]byte(request.Body), l)
 		if err != nil {
 			zerolog.Ctx(ctx).Warn().Str("error", fmt.Sprintf("%+v", err)).Msg("error reading load request body")
-			return api.NewInternalServerError(ctx), nil
+			return api.NewInternalServerError(ctx, nil), nil
 		}
 		sess, err := loadSession(ctx, l.SessionID)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error reading session")
-			return api.NewPermissionDeniedResponse(ctx), nil
+			return api.NewPermissionDeniedResponse(ctx, nil), nil
 		}
 		if sess == nil {
 			zerolog.Ctx(ctx).Warn().Str("sessionID", l.SessionID).Msg("session not found")
-			return api.NewPermissionDeniedResponse(ctx), nil
+			return api.NewPermissionDeniedResponse(ctx, nil), nil
 		}
 		err = saveWatcher(ctx, sess.SessionID, request.RequestContext.ConnectionID)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error recording interest")
-			return api.NewInternalServerError(ctx), nil
+			return api.NewInternalServerError(ctx, nil), nil
 		}
 		err = dispatch(ctx, request.RequestContext.ConnectionID, api.Message{
 			Type: api.SessionLoaded,
@@ -45,7 +45,7 @@ func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, saveWa
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error dispatching message")
 		}
-		return api.NewSuccessResponse(ctx, sess), nil
+		return api.NewSuccessResponse(ctx, nil, sess), nil
 	}
 }
 

@@ -35,6 +35,6 @@ update that
 
 AWS API stage deployment is a terrible thing that will cause any changes to API routes not to be visible until the stage is "deployed". With V1 its possible to add variables to the deployment to force a deployment every time terraform runs, but alas this is not possible with the V2 api. So, if you add routes or anything execute:
 
-`terraform taint aws_apigatewayv2_deployment.pointing`
+`terraform taint aws_apigatewayv2_deployment.websockets_pointing`
 
 and then apply to force a new deployment.

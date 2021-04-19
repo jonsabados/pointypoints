@@ -24,10 +24,12 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue, Watch } from 'vue-property-decorator'
-import { PointingSession, PointingSessionStore } from './PointingSessionStore'
+import { Component, Vue } from 'vue-property-decorator'
+import { PointingSession } from './PointingSessionStore'
+import { AppStore } from '@/app/AppStore'
 import { User } from '@/user/user'
 import Loading from '@/app/Loading.vue'
+import { vote } from '@/pointing/pointing'
 
 @Component({
   components: { Loading },
@@ -39,12 +41,7 @@ import Loading from '@/app/Loading.vue'
 export default class Pointing extends Vue {
   session?: PointingSession
   userId?: string
-  newVote: string = ''
-  votesShownState: boolean = false
-
-  get loading(): boolean {
-    return !!this.newVote && this.newVote !== this.currentVote
-  }
+  loading: boolean = false
 
   get user(): User | undefined {
     if (!this.session) {
@@ -65,24 +62,21 @@ export default class Pointing extends Vue {
     return this.user.currentVote
   }
 
-  mounted() {
-    this.votesShownState = !!this.session && this.session.votesShown
-  }
-
-  vote(value: string) {
+  async vote(value: string) {
     if (!this.session) {
-      throw Error('attempt to vote without a session')
+      throw new Error('attempt to vote without a session')
     }
-    this.newVote = value
-    this.$store.dispatch(PointingSessionStore.ACTION_VOTE, { sessionId: this.session.sessionId, vote: value })
-  }
-
-  @Watch('session.votesShown')
-  watchForClearVotes() {
-    if (this.votesShownState && this.session && !this.session.votesShown) {
-      this.newVote = ''
+    if (!this.userId || !this.user) {
+      throw new Error('attempt to vote without a user id')
     }
-    this.votesShownState = (this.session !== undefined && this.session.votesShown)
+    this.loading = true
+    try {
+      await vote(this.session.sessionId, this.userId, value)
+      this.user.currentVote = value
+    } catch (e) {
+      await this.$store.dispatch(AppStore.ACTION_REGISTER_REMOTE_ERROR, 'Error registering vote')
+    }
+    this.loading = false
   }
 }
 </script>

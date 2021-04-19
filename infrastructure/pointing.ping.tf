@@ -40,7 +40,7 @@ data "aws_iam_policy_document" "ping_lambda_policy" {
 }
 
 module "ping_lambda" {
-  source = "./endpoint"
+  source = "./websocket-route"
 
   aws_region = var.aws_region
 

@@ -20,36 +20,36 @@ type ValidationError struct {
 }
 
 type Response struct {
-	Result        interface{} `json:"result"`
-	RequestID     string      `json:"requestId"`
+	Result    interface{} `json:"result"`
+	RequestID string      `json:"requestId"`
 }
 
-func NewSuccessResponse(ctx context.Context, result interface{}) events.APIGatewayProxyResponse {
+func NewSuccessResponse(ctx context.Context, baseHeaders map[string]string, result interface{}) events.APIGatewayProxyResponse {
 	return wrapResponse(Response{
-		Result:        result,
-		RequestID:     requestID(ctx),
-	}, http.StatusOK)
-}
-
-func NewInternalServerError(ctx context.Context, ) events.APIGatewayProxyResponse {
-	return wrapResponse(Response{
-		Result:      "an internal server error has occurred",
-		RequestID:   requestID(ctx),
-	}, http.StatusInternalServerError)
-}
-
-func NewValidationFailureResponse(ctx context.Context, result ValidationError) events.APIGatewayProxyResponse {
-	return wrapResponse(Response{
-		Result:        result,
+		Result:    result,
 		RequestID: requestID(ctx),
-	}, http.StatusBadRequest)
+	}, responseHeaders(baseHeaders), http.StatusOK)
 }
 
-func NewPermissionDeniedResponse(ctx context.Context) events.APIGatewayProxyResponse {
+func NewInternalServerError(ctx context.Context, baseHeaders map[string]string) events.APIGatewayProxyResponse {
 	return wrapResponse(Response{
-		Result:        "permission denied",
+		Result:    "an internal server error has occurred",
 		RequestID: requestID(ctx),
-	}, http.StatusForbidden)
+	}, responseHeaders(baseHeaders), http.StatusInternalServerError)
+}
+
+func NewValidationFailureResponse(ctx context.Context, baseHeaders map[string]string, result ValidationError) events.APIGatewayProxyResponse {
+	return wrapResponse(Response{
+		Result:    result,
+		RequestID: requestID(ctx),
+	}, responseHeaders(baseHeaders), http.StatusBadRequest)
+}
+
+func NewPermissionDeniedResponse(ctx context.Context, baseHeaders map[string]string) events.APIGatewayProxyResponse {
+	return wrapResponse(Response{
+		Result:    "permission denied",
+		RequestID: requestID(ctx),
+	}, responseHeaders(baseHeaders), http.StatusForbidden)
 }
 
 func requestID(ctx context.Context) string {
@@ -60,13 +60,23 @@ func requestID(ctx context.Context) string {
 	}
 }
 
-func wrapResponse(r Response, statusCode int) events.APIGatewayProxyResponse {
+func wrapResponse(r Response, headers map[string]string, statusCode int) events.APIGatewayProxyResponse {
 	body, err := json.Marshal(r)
 	if err != nil {
 		panic(err) // if we can't marshal our own stuff then were hosed
 	}
 	return events.APIGatewayProxyResponse{
 		StatusCode: statusCode,
-		Body: string(body),
+		Body:       string(body),
+		Headers:    headers,
 	}
+}
+
+func responseHeaders(baseHeaders map[string]string) map[string]string {
+	ret := make(map[string]string)
+	for k, v := range baseHeaders {
+		ret[k] = v
+	}
+	ret["content-type"] = "application/json"
+	return ret
 }

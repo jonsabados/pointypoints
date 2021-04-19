@@ -58,7 +58,6 @@ type JoinSessionRequest struct {
 }
 
 type VoteRequest struct {
-	SessionID string `json:"sessionId"`
 	Vote      string `json:"vote"`
 }
 

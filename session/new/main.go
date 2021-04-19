@@ -23,7 +23,7 @@ func NewHandler(prepareLogs logging.Preparer, startSession session.Starter, disp
 		err := json.Unmarshal([]byte(request.Body), toStart)
 		if err != nil {
 			zerolog.Ctx(ctx).Warn().Str("error", fmt.Sprintf("%+v", err)).Msg("error session start reading request body")
-			return api.NewInternalServerError(ctx), nil
+			return api.NewInternalServerError(ctx, nil), nil
 		}
 		errors := make([]string, 0)
 		if toStart.Facilitator.Name == "" {
@@ -34,7 +34,7 @@ func NewHandler(prepareLogs logging.Preparer, startSession session.Starter, disp
 			errors = append(errors, "facilitator user id is required")
 		}
 		if len(errors) > 0 {
-			return api.NewValidationFailureResponse(ctx, api.ValidationError{
+			return api.NewValidationFailureResponse(ctx, nil, api.ValidationError{
 				Errors: errors,
 			}), nil
 		}
@@ -51,7 +51,7 @@ func NewHandler(prepareLogs logging.Preparer, startSession session.Starter, disp
 			if err != nil {
 				zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error dispatching message")
 			}
-			return api.NewInternalServerError(ctx), nil
+			return api.NewInternalServerError(ctx, nil), nil
 		}
 
 		err = dispatch(ctx, request.RequestContext.ConnectionID, api.Message{
@@ -61,7 +61,7 @@ func NewHandler(prepareLogs logging.Preparer, startSession session.Starter, disp
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error dispatching message")
 		}
-		return api.NewSuccessResponse(ctx, sess), nil
+		return api.NewSuccessResponse(ctx, nil, sess), nil
 	}
 }
 

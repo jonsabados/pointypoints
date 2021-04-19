@@ -22,7 +22,7 @@ func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, saveUs
 		err := json.Unmarshal([]byte(request.Body), j)
 		if err != nil {
 			zerolog.Ctx(ctx).Warn().Str("error", fmt.Sprintf("%+v", err)).Msg("error reading load request body")
-			return api.NewInternalServerError(ctx), nil
+			return api.NewInternalServerError(ctx, nil), nil
 		}
 
 		errors := make([]string, 0)
@@ -33,7 +33,7 @@ func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, saveUs
 			errors = append(errors, "user id is required")
 		}
 		if len(errors) > 0 {
-			return api.NewValidationFailureResponse(ctx, api.ValidationError{
+			return api.NewValidationFailureResponse(ctx, nil, api.ValidationError{
 				Errors: errors,
 			}), nil
 		}
@@ -43,21 +43,21 @@ func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, saveUs
 		err = saveUser(ctx, j.SessionID, newUser, session.Participant)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error saving session")
-			return api.NewInternalServerError(ctx), nil
+			return api.NewInternalServerError(ctx, nil), nil
 		}
 
 		sess, err := loadSession(ctx, j.SessionID)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error reading session")
-			return api.NewPermissionDeniedResponse(ctx), nil
+			return api.NewPermissionDeniedResponse(ctx, nil), nil
 		}
 		err = notifyParticipants(ctx, *sess)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error notifying participants of change")
-			return api.NewPermissionDeniedResponse(ctx), nil
+			return api.NewPermissionDeniedResponse(ctx, nil), nil
 		}
 
-		return api.NewSuccessResponse(ctx, sess), nil
+		return api.NewSuccessResponse(ctx, nil, sess), nil
 	}
 }
 

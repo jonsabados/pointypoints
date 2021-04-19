@@ -29,7 +29,7 @@ data "aws_iam_policy_document" "connect_lambda_policy" {
 }
 
 module "connect_lambda" {
-  source = "./endpoint"
+  source = "./websocket-route"
 
   aws_region = var.aws_region
 

@@ -4,8 +4,8 @@
     <div>
       <router-view/>
     </div>
-    <b-modal v-model="hasRemoteError" role="alert" ok-only id="remoteErrorDialog" title="Something went wrong">
-      <p id="remoteErrorMessage">Please try again.</p>
+    <b-modal v-model="hasRemoteError" role="alert" ok-only id="remoteErrorDialog" title="An error has occurred">
+      <p id="remoteErrorMessage">{{ currentError }}</p>
     </b-modal>
   </div>
 </template>
@@ -28,6 +28,10 @@ export default class App extends Vue {
 
   get sessionActive(): boolean {
     return this.$store.state.pointingSession.sessionActive
+  }
+
+  get currentError(): null | string {
+    return this.$store.state.app.errorToAck
   }
 
   get hasRemoteError(): boolean {

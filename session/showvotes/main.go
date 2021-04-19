@@ -22,21 +22,21 @@ func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, saveSe
 		err := json.Unmarshal([]byte(request.Body), r)
 		if err != nil {
 			zerolog.Ctx(ctx).Warn().Str("error", fmt.Sprintf("%+v", err)).Msg("error reading load request body")
-			return api.NewInternalServerError(ctx), nil
+			return api.NewInternalServerError(ctx, nil), nil
 		}
 
 		sess, err := loadSession(ctx, r.SessionID)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error reading session")
-			return api.NewPermissionDeniedResponse(ctx), nil
+			return api.NewPermissionDeniedResponse(ctx, nil), nil
 		}
 		if sess == nil {
 			zerolog.Ctx(ctx).Warn().Str("sessionID", r.SessionID).Msg("session not found")
-			return api.NewPermissionDeniedResponse(ctx), nil
+			return api.NewPermissionDeniedResponse(ctx, nil), nil
 		}
 		if sess.FacilitatorSessionKey != r.FacilitatorSessionKey {
 			zerolog.Ctx(ctx).Warn().Str("sessionID", r.SessionID).Msg("attempt to show votes with incorrect facilitator key")
-			return api.NewPermissionDeniedResponse(ctx), nil
+			return api.NewPermissionDeniedResponse(ctx, nil), nil
 		}
 
 		sess.VotesShown = true
@@ -44,9 +44,9 @@ func NewHandler(prepareLogs logging.Preparer, loadSession session.Loader, saveSe
 		err = saveSession(ctx, *sess)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error saving session")
-			return api.NewInternalServerError(ctx), nil
+			return api.NewInternalServerError(ctx, nil), nil
 		}
-		return api.NewSuccessResponse(ctx, sess), nil
+		return api.NewSuccessResponse(ctx, nil, sess), nil
 	}
 }
 

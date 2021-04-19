@@ -39,6 +39,12 @@ clean:
 run: frontend/.env.local
 	cd frontend && npm run serve
 
+dist/cors: dist/ $(shell find . -iname "*.go")
+	GOOS=linux go build -o dist/cors github.com/jonsabados/pointypoints/cors/lambda
+
+dist/corsLambda.zip: dist/cors
+	cd dist && zip corsLambda.zip cors
+
 dist/newSession: dist/ $(shell find . -iname "*.go")
 	GOOS=linux go build -o dist/newSession github.com/jonsabados/pointypoints/session/new
 
@@ -99,6 +105,7 @@ dist/ping: dist/ $(shell find . -iname "*.go")
 dist/pingLambda.zip: dist/ping
 	cd dist && zip pingLambda.zip ping
 
-build: frontend/dist/index.html dist/newSessionLambda.zip dist/connectLambda.zip dist/disconnectLambda.zip \
-	dist/loadFacilitatorSessionLambda.zip dist/loadSessionLambda.zip dist/joinSessionLambda.zip dist/voteLambda.zip \
-	dist/showVotesLambda.zip dist/clearVotesLambda.zip dist/pingLambda.zip
+build: frontend/dist/index.html dist/corsLambda.zip dist/newSessionLambda.zip dist/connectLambda.zip \
+	dist/disconnectLambda.zip dist/loadFacilitatorSessionLambda.zip dist/loadSessionLambda.zip \
+	dist/joinSessionLambda.zip dist/voteLambda.zip dist/showVotesLambda.zip dist/clearVotesLambda.zip \
+	dist/pingLambda.zip
