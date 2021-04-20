@@ -1,7 +1,7 @@
 <template>
   <main class="container-fluid" role="main">
     <h1>New Pointing Session</h1>
-    <div v-if="creatingSession">
+    <div v-if="creatingSession || !hasConnectionId">
       <loading id="searchResultLoadingIndicator" />
     </div>
     <div v-else>
@@ -39,6 +39,8 @@ import { PointingSessionStore } from '@/pointing/PointingSessionStore'
 import Loading from '@/app/Loading.vue'
 import { FACILITATE_ROUTE_NAME } from '@/navigation/router'
 import { newUser } from '@/user/user'
+import { AppStore } from '@/app/AppStore'
+import { createSession } from '@/pointing/pointing'
 
 @Component({
   components: {
@@ -62,19 +64,31 @@ export default class NewSession extends Vue {
     return this.facilitatorName === ''
   }
 
+  get hasConnectionId(): boolean {
+    return !!this.$store.state.pointingSession.connectionId
+  }
+
   mounted() {
     this.$store.dispatch(PointingSessionStore.ACTION_END_SESSION)
   }
 
-  startSession() {
+  async startSession() {
     this.creatingSession = true
     const facilitatorName = this.facilitatorName
     const facilitatorHandle = this.facilitatorHandle
     const facilitatorPoints = this.facilitatorPoints === 'true'
-    this.$store.dispatch(PointingSessionStore.ACTION_BEGIN_SESSION, {
+    const request = {
+      connectionId: this.$store.state.pointingSession.connectionId,
       facilitator: newUser(facilitatorName, facilitatorHandle),
       facilitatorPoints: facilitatorPoints
-    })
+    }
+    try {
+      const session = await createSession(request)
+      await this.$store.dispatch(PointingSessionStore.ACTION_SET_FACILITATOR_SESSION, session)
+    } catch (e) {
+      this.creatingSession = false
+      await this.$store.dispatch(AppStore.ACTION_REGISTER_REMOTE_ERROR, 'Error creating session')
+    }
   }
 
   @Watch('sessionActive')

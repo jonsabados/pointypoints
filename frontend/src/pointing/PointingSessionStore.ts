@@ -27,12 +27,6 @@ export interface LoadSessionRequest {
   markActive: boolean
 }
 
-export interface StartSessionRequest {
-  action?: 'newSession'
-  facilitator: User
-  facilitatorPoints: boolean
-}
-
 export interface VoteRequest {
   action?: 'vote'
   sessionId: string
@@ -95,9 +89,9 @@ function convertFacilitatorSession(view: any): PointingSession {
 @Module
 export class PointingSessionStore extends VuexModule<PointingSessionState> {
   static ACTION_INITIALIZE = 'initialize'
-  static ACTION_BEGIN_SESSION = 'beginSession'
   static ACTION_END_SESSION = 'endSession'
   static ACTION_LOAD_FACILITATOR_SESSION = 'loadFacilitatorSession'
+  static ACTION_SET_FACILITATOR_SESSION = 'setFacilitatorSession'
   static ACTION_LOAD_SESSION = 'loadSession'
   static ACTION_CLEAR_VOTES = 'clearVotes'
 
@@ -228,15 +222,16 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
   }
 
   @Action
-  loadSession(request: LoadSessionRequest) {
-    request.action = 'loadSession'
-    sendMessage(this.socket, request)
+  setFacilitatorSession(session: PointingSession) {
+    const view = convertFacilitatorSession(session)
+    this.context.commit(PointingSessionStore.MUTATION_SESSION_ADDED, view)
+    this.context.commit(PointingSessionStore.MUTATION_SET_ACTIVE_SESSION, view)
   }
 
   @Action
-  beginSession(request: StartSessionRequest) {
-    request.action = 'newSession'
-    this.socket.send(JSON.stringify(request))
+  loadSession(request: LoadSessionRequest) {
+    request.action = 'loadSession'
+    sendMessage(this.socket, request)
   }
 
   @Action

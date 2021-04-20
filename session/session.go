@@ -44,8 +44,9 @@ type User struct {
 }
 
 type StartRequest struct {
-	Facilitator       User `json:"facilitator"`
-	FacilitatorPoints bool `json:"facilitatorPoints"`
+	Facilitator       User   `json:"facilitator"`
+	FacilitatorPoints bool   `json:"facilitatorPoints"`
+	ConnectionID      string `json:"connectionId"`
 }
 
 type LoadFacilitatorSessionRequest struct {
