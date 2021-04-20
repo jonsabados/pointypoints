@@ -39,12 +39,6 @@ export interface VoteRequest {
   vote: string
 }
 
-export interface ShowVotesRequest {
-  action?: 'showVotes'
-  sessionId: string
-  facilitatorSessionKey: string
-}
-
 export interface ClearVotesRequest {
   action?: 'clearVotes'
   sessionId: string
@@ -105,7 +99,6 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
   static ACTION_END_SESSION = 'endSession'
   static ACTION_LOAD_FACILITATOR_SESSION = 'loadFacilitatorSession'
   static ACTION_LOAD_SESSION = 'loadSession'
-  static ACTION_SHOW_VOTES = 'showVotes'
   static ACTION_CLEAR_VOTES = 'clearVotes'
 
   static MUTATION_SET_ACTIVE_SESSION = 'setActiveSession'
@@ -243,12 +236,6 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
   @Action
   beginSession(request: StartSessionRequest) {
     request.action = 'newSession'
-    this.socket.send(JSON.stringify(request))
-  }
-
-  @Action
-  showVotes(request: ShowVotesRequest) {
-    request.action = 'showVotes'
     this.socket.send(JSON.stringify(request))
   }
 
