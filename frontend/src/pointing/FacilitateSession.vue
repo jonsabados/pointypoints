@@ -65,6 +65,8 @@ import { PointingSession, PointingSessionStore } from '@/pointing/PointingSessio
 import Loading from '@/app/Loading.vue'
 import { User } from '@/user/user'
 import Pointing from '@/pointing/Pointing.vue'
+import { updateSession } from '@/pointing/pointing'
+import { AppStore } from '@/app/AppStore'
 
 @Component({
   components: { Pointing, Loading }
@@ -127,12 +129,20 @@ export default class Session extends Vue {
     this.routeParamsChanged()
   }
 
-  showVotes() {
+  async showVotes() {
+    if (!this.currentSession) {
+      throw Error('attempt to show votes without session')
+    }
     this.clearVotesClicked = false
     this.votesShownClicked = true
     const sessionId = this.$route.params.sessionId
     const facilitatorSessionKey = this.$route.params.facilitatorSessionKey
-    this.$store.dispatch(PointingSessionStore.ACTION_SHOW_VOTES, { sessionId, facilitatorSessionKey })
+    try {
+      await updateSession(sessionId, facilitatorSessionKey, true, this.currentSession.facilitatorPoints)
+    } catch (e) {
+      await this.$store.dispatch(AppStore.ACTION_REGISTER_REMOTE_ERROR, 'Error showing votes')
+      this.votesShownClicked = false
+    }
   }
 
   clearVotes() {

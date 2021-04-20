@@ -43,6 +43,7 @@ resource "aws_api_gateway_deployment" "rest_api" {
     module.cors_endpoint,
     module.joinSession_lambda,
     module.vote_lambda,
+    module.updateSession_lambda,
   ]
   rest_api_id = aws_api_gateway_rest_api.rest_pointing.id
   stage_name  = "${local.workspace_prefix}rest-main"

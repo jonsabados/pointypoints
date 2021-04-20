@@ -93,6 +93,12 @@ dist/showVotes: dist/ $(shell find . -iname "*.go")
 dist/showVotesLambda.zip: dist/showVotes
 	cd dist && zip showVotesLambda.zip showVotes
 
+dist/updateSession: dist/ $(shell find . -iname "*.go")
+	GOOS=linux go build -o dist/updateSession github.com/jonsabados/pointypoints/session/update
+
+dist/updateSessionLambda.zip: dist/updateSession
+	cd dist && zip updateSessionLambda.zip updateSession
+
 dist/clearVotes: dist/ $(shell find . -iname "*.go")
 	GOOS=linux go build -o dist/clearVotes github.com/jonsabados/pointypoints/session/clearvotes
 
@@ -107,5 +113,5 @@ dist/pingLambda.zip: dist/ping
 
 build: frontend/dist/index.html dist/corsLambda.zip dist/newSessionLambda.zip dist/connectLambda.zip \
 	dist/disconnectLambda.zip dist/loadFacilitatorSessionLambda.zip dist/loadSessionLambda.zip \
-	dist/joinSessionLambda.zip dist/voteLambda.zip dist/showVotesLambda.zip dist/clearVotesLambda.zip \
+	dist/joinSessionLambda.zip dist/voteLambda.zip dist/updateSessionLambda.zip dist/clearVotesLambda.zip \
 	dist/pingLambda.zip

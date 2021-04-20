@@ -18,3 +18,16 @@ export async function joinSession(session: string, userID: string, user: User) {
     throw new Error(`unexpected response code ${res.status}`)
   }
 }
+
+export async function updateSession(session: string, facilitatorKey: string, votesShown: boolean, facilitatorPoints: boolean) {
+  const url = `${apiBase()}/session/${session}`
+  const request = { votesShown, facilitatorPoints }
+  const res = await axios.put(url, request, {
+    headers: {
+      Authorization: facilitatorKey
+    }
+  })
+  if (res.status !== 200) {
+    throw new Error(`unexpected response code ${res.status}`)
+  }
+}

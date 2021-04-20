@@ -53,12 +53,17 @@ type LoadSessionRequest struct {
 }
 
 type VoteRequest struct {
-	Vote      string `json:"vote"`
+	Vote string `json:"vote"`
 }
 
 type ShowVotesRequest struct {
 	SessionID             string `json:"sessionId"`
 	FacilitatorSessionKey string `json:"facilitatorSessionKey"`
+}
+
+type UpdateRequest struct {
+	VotesShown        bool `json:"votesShown"`
+	FacilitatorPoints bool `json:"facilitatorPoints"`
 }
 
 type CompleteSessionView struct {
