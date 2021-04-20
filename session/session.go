@@ -29,12 +29,18 @@ const (
 	watcherRecordRangeKeyPrefix     = "watcher:"
 )
 
+type JoinSessionRequest struct {
+	Name         string `json:"name,omitempty"`
+	Handle       string `json:"handle,omitempty"`
+	ConnectionID string `json:"connectionId"`
+}
+
 type User struct {
 	UserID      string  `json:"userId"`
 	Name        string  `json:"name,omitempty"`
 	Handle      string  `json:"handle,omitempty"`
 	CurrentVote *string `json:"currentVote,omitempty"`
-	SocketID    string  `json:"connectionId"`
+	SocketID    string  `json:"-"`
 }
 
 type StartRequest struct {

@@ -21,18 +21,18 @@ import (
 func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBuilder, loadSession session.Loader, saveUser session.UserSaver, notifyParticipants session.ChangeNotifier) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 		ctx = prepareLogs(ctx)
-		var user session.User
-		err := json.Unmarshal([]byte(request.Body), &user)
+		var joinRequest session.JoinSessionRequest
+		err := json.Unmarshal([]byte(request.Body), &joinRequest)
 		if err != nil {
 			zerolog.Ctx(ctx).Warn().Str("error", fmt.Sprintf("%+v", err)).Msg("error reading load request body")
 			return api.NewInternalServerError(ctx, corsHeaders(request.Headers)), nil
 		}
 
 		errors := make([]string, 0)
-		if user.Name == "" {
+		if joinRequest.Name == "" {
 			errors = append(errors, "user name is required")
 		}
-		if user.SocketID == "" {
+		if joinRequest.ConnectionID == "" {
 			errors = append(errors, "connection id is required")
 		}
 		if len(errors) > 0 {
@@ -42,7 +42,12 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 		}
 
 		sessionID := request.PathParameters["session"]
-		user.UserID = request.PathParameters["user"]
+		user := session.User{
+			UserID:   request.PathParameters["user"],
+			Name:     joinRequest.Name,
+			Handle:   joinRequest.Handle,
+			SocketID: joinRequest.ConnectionID,
+		}
 		err = saveUser(ctx, sessionID, user, session.Participant)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error saving session")

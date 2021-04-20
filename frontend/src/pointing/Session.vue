@@ -15,9 +15,7 @@
       <div v-else>
         <h4>This session currently has {{ currentSession.participants.length }} participants.</h4>
         <p>
-          The session facilitator is
-          <user-display-name :user="currentSession.facilitator"/>
-          ,
+          The session facilitator is <user-display-name :user="currentSession.facilitator"/>,
           <span v-if="currentSession.facilitatorPoints">
             and they are participating in pointing
           </span>
