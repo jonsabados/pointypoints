@@ -62,6 +62,7 @@ export interface PointingSession {
 }
 
 export interface PointingSessionState {
+  connectionId: string | null
   sessionActive: boolean
   currentSession: PointingSession | null
   knownSessions: Array<PointingSession>
@@ -104,7 +105,6 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
   static ACTION_END_SESSION = 'endSession'
   static ACTION_LOAD_FACILITATOR_SESSION = 'loadFacilitatorSession'
   static ACTION_LOAD_SESSION = 'loadSession'
-  static ACTION_JOIN_SESSION = 'joinSession'
   static ACTION_SHOW_VOTES = 'showVotes'
   static ACTION_CLEAR_VOTES = 'clearVotes'
 
@@ -112,6 +112,9 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
   static MUTATION_END_SESSION = 'clearSession'
   static MUTATION_SESSION_ADDED = 'sessionAdded'
   static MUTATION_SET_SESSIONS = 'setSessions'
+  static MUTATION_SET_CONNECTION_ID = 'setConnectionId'
+
+  connectionId: string | null = null
 
   sessionActive: boolean = false
 
@@ -121,6 +124,11 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
   knownSessions: Array<PointingSession> = []
 
   socket: WebSocket = new WebSocket(`${process.env['VUE_APP_POINTING_SOCKET_URL']}/`)
+
+  @Mutation
+  setConnectionId(connectionId: string) {
+    this.connectionId = connectionId
+  }
 
   @Mutation
   clearSession() {
@@ -156,11 +164,13 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
 
   @Action
   initialize() {
-    setInterval(() => {
+    const ping = () => {
       sendMessage(this.socket, {
         action: 'ping'
       })
-    }, 30000)
+    }
+    setInterval(ping, 30000)
+    ping()
     this.socket.onerror = (ev) => {
       this.context.dispatch(AppStore.ACTION_REGISTER_REMOTE_ERROR, ev)
     }
@@ -203,7 +213,7 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
           break
         }
         case PING: {
-          console.log(`received ping with content: ${eventData.body}`)
+          this.context.commit(PointingSessionStore.MUTATION_SET_CONNECTION_ID, eventData.body.connectionId)
           break
         }
         default:
@@ -233,12 +243,6 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
   @Action
   beginSession(request: StartSessionRequest) {
     request.action = 'newSession'
-    this.socket.send(JSON.stringify(request))
-  }
-
-  @Action
-  joinSession(request: JoinSessionRequest) {
-    request.action = 'joinSession'
     this.socket.send(JSON.stringify(request))
   }
 

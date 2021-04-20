@@ -41,6 +41,7 @@ resource "aws_api_gateway_domain_name" "rest_pointing" {
 resource "aws_api_gateway_deployment" "rest_api" {
   depends_on  = [
     module.cors_endpoint,
+    module.joinSession_lambda,
     module.vote_lambda,
   ]
   rest_api_id = aws_api_gateway_rest_api.rest_pointing.id

@@ -74,7 +74,7 @@ export default class Session extends Vue {
   clearVotesClicked = false
 
   get userId(): string {
-    return this.currentSession ? this.currentSession.facilitator.userId : ''
+    return this.currentSession ? this.currentSession.facilitator.userId as string : ''
   }
 
   get currentSession(): PointingSession | undefined {

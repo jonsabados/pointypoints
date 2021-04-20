@@ -34,7 +34,7 @@ type User struct {
 	Name        string  `json:"name,omitempty"`
 	Handle      string  `json:"handle,omitempty"`
 	CurrentVote *string `json:"currentVote,omitempty"`
-	SocketID    string  `json:"-"`
+	SocketID    string  `json:"connectionId"`
 }
 
 type StartRequest struct {
@@ -50,11 +50,6 @@ type LoadFacilitatorSessionRequest struct {
 
 type LoadSessionRequest struct {
 	SessionID string `json:"sessionId"`
-}
-
-type JoinSessionRequest struct {
-	SessionID string `json:"sessionId"`
-	User      User   `json:"user"`
 }
 
 type VoteRequest struct {

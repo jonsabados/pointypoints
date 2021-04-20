@@ -20,7 +20,13 @@ func NewHandler(prepareLogs logging.Preparer, dispatch api.MessageDispatcher) fu
 
 		err := dispatch(ctx, request.RequestContext.ConnectionID, api.Message{
 			Type: api.Ping,
-			Body: "pong",
+			Body: struct {
+				Message      string `json:"message"`
+				ConnectionID string `json:"connectionId"`
+			}{
+				Message:      "pong",
+				ConnectionID: request.RequestContext.ConnectionID,
+			},
 		})
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error dispatching message")

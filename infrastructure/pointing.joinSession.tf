@@ -1,13 +1,19 @@
 module "joinSession_lambda" {
-  source = "./websocket-route"
+  source = "./rest-endpoint"
 
   aws_region = var.aws_region
+  api_id     = aws_api_gateway_rest_api.rest_pointing.id
 
-  api_id = aws_apigatewayv2_api.websockets_pointing.id
-  name   = "joinSession"
-  route  = "joinSession"
-
-  policy = data.aws_iam_policy_document.session_modifying_lambda_policy.json
-
+  name       = "joinSession"
+  policy     = data.aws_iam_policy_document.session_modifying_lambda_policy.json
   lambda_env = local.session_modifying_lambda_env
+
+  http_method = "PUT"
+  resource_id = aws_api_gateway_resource.user_var.id
+  full_path   = aws_api_gateway_resource.user_var.path
+
+  request_parameters = {
+    "method.request.path.session" = true
+    "method.request.path.user"    = true
+  }
 }
