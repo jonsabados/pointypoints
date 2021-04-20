@@ -39,6 +39,7 @@ describe('NewSession', () => {
 
     const state = {
       pointingSession: {
+        connectionId: 'foobarblah'
       }
     }
 
