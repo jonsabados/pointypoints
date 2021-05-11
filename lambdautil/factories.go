@@ -13,7 +13,7 @@ import (
 	"github.com/jonsabados/pointypoints/api"
 )
 
-const SessionTimeout = time.Hour * 4
+const SessionTimeout = time.Hour * 72
 
 var SessionTable = os.Getenv("SESSION_TABLE")
 var SessionSocketIndex = os.Getenv("SESSION_SOCKET_INDEX")

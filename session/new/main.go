@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -63,7 +62,7 @@ func main() {
 	sess := lambdautil.DefaultAWSConfig()
 
 	dynamo := lambdautil.NewDynamoClient(sess)
-	starter := session.NewStarter(dynamo, lambdautil.SessionTable, time.Hour)
+	starter := session.NewStarter(dynamo, lambdautil.SessionTable, lambdautil.SessionTimeout)
 
 	allowedDomains := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
 
