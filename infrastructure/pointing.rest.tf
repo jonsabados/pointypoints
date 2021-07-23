@@ -39,17 +39,19 @@ resource "aws_api_gateway_domain_name" "rest_pointing" {
 }
 
 resource "aws_api_gateway_deployment" "rest_api" {
-  depends_on  = [
+  depends_on = [
     module.cors_endpoint,
     module.joinSession_lambda,
     module.vote_lambda,
     module.updateSession_lambda,
+    module.newSession_lambda,
+    module.clearVotes_lambda,
   ]
   rest_api_id = aws_api_gateway_rest_api.rest_pointing.id
   stage_name  = "${local.workspace_prefix}rest-main"
 
   variables = {
-    "deployed_at": timestamp()
+    "deployed_at" : timestamp()
   }
 
   lifecycle {
@@ -109,9 +111,9 @@ resource "aws_api_gateway_resource" "user_var" {
 
 data "aws_iam_policy_document" "cors_lambda_policy" {
   statement {
-    sid       = "AllowLogging"
-    effect    = "Allow"
-    actions   = [
+    sid    = "AllowLogging"
+    effect = "Allow"
+    actions = [
       "logs:CreateLogGroup",
       "logs:CreateLogStream",
       "logs:PutLogEvents"
@@ -122,9 +124,9 @@ data "aws_iam_policy_document" "cors_lambda_policy" {
   }
 
   statement {
-    sid       = "AllowXRayWrite"
-    effect    = "Allow"
-    actions   = [
+    sid    = "AllowXRayWrite"
+    effect = "Allow"
+    actions = [
       "xray:PutTraceSegments",
       "xray:PutTelemetryRecords",
       "xray:GetSamplingRules",
@@ -147,8 +149,8 @@ module "cors_endpoint" {
   aws_region = var.aws_region
   api_id     = aws_api_gateway_rest_api.rest_pointing.id
 
-  name       = "cors"
-  policy     = data.aws_iam_policy_document.session_modifying_lambda_policy.json
+  name   = "cors"
+  policy = data.aws_iam_policy_document.session_modifying_lambda_policy.json
   lambda_env = {
     LOG_LEVEL       = "info"
     ALLOWED_ORIGINS = "https://${aws_acm_certificate.ui_cert.domain_name},https://${aws_acm_certificate.ui_cert.subject_alternative_names[0]},http://localhost:8080"

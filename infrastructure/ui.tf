@@ -12,11 +12,11 @@ resource "aws_s3_bucket" "ui_bucket" {
 }
 
 resource "aws_acm_certificate" "ui_cert" {
-  domain_name               = "${local.workspace_domain_prefix}${data.aws_ssm_parameter.domain_name.value}"
+  domain_name = "${local.workspace_domain_prefix}${data.aws_ssm_parameter.domain_name.value}"
   subject_alternative_names = [
     "${terraform.workspace == "default" ? "www." : "www-"}${local.workspace_domain_prefix}${data.aws_ssm_parameter.domain_name.value}"
   ]
-  validation_method         = "DNS"
+  validation_method = "DNS"
 
   tags = {
     Workspace = terraform.workspace
@@ -29,8 +29,8 @@ resource "aws_route53_record" "ui_cert_cert_verification_record" {
   type    = aws_acm_certificate.ui_cert.domain_validation_options[count.index].resource_record_type
   zone_id = data.aws_route53_zone.main_domain.id
   records = [
-    aws_acm_certificate.ui_cert.domain_validation_options[count.index].resource_record_value]
-  ttl     = 300
+  aws_acm_certificate.ui_cert.domain_validation_options[count.index].resource_record_value]
+  ttl = 300
 }
 
 resource "aws_cloudfront_origin_access_identity" "default" {}
@@ -40,17 +40,17 @@ resource "aws_cloudfront_distribution" "ui_cdn" {
   wait_for_deployment = false
   price_class         = "PriceClass_100"
   default_root_object = "index.html"
-  aliases             = [
+  aliases = [
     "${local.workspace_domain_prefix}${data.aws_ssm_parameter.domain_name.value}",
     "${terraform.workspace == "default" ? "www." : "www-"}${local.workspace_domain_prefix}${data.aws_ssm_parameter.domain_name.value}"
   ]
 
   default_cache_behavior {
-    allowed_methods        = [
+    allowed_methods = [
       "HEAD",
       "GET"
     ]
-    cached_methods         = [
+    cached_methods = [
       "HEAD",
       "GET"
     ]

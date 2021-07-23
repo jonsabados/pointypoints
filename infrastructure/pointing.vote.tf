@@ -19,7 +19,7 @@ module "vote_lambda" {
   full_path   = aws_api_gateway_resource.vote_resource.path
 
   request_parameters = {
-    "method.request.path.session"    = true
-    "method.request.path.user" = true
+    "method.request.path.session" = true
+    "method.request.path.user"    = true
   }
 }

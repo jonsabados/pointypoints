@@ -18,8 +18,8 @@ data "aws_iam_policy_document" "assume_lambda_role_policy" {
 
       type = "Service"
     }
-    effect  = "Allow"
-    sid     = "AllowLambdaAssumeRole"
+    effect = "Allow"
+    sid    = "AllowLambdaAssumeRole"
   }
 }
 
@@ -33,7 +33,7 @@ data "aws_iam_policy_document" "gateway_assume_role_policy" {
 
       type = "Service"
     }
-    effect  = "Allow"
-    sid     = "AllowLambdaAssumeRole"
+    effect = "Allow"
+    sid    = "AllowLambdaAssumeRole"
   }
 }

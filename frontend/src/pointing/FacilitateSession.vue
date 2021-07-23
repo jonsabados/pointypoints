@@ -65,7 +65,7 @@ import { PointingSession, PointingSessionStore } from '@/pointing/PointingSessio
 import Loading from '@/app/Loading.vue'
 import { User } from '@/user/user'
 import Pointing from '@/pointing/Pointing.vue'
-import { updateSession } from '@/pointing/pointing'
+import { updateSession, clearVotes as makeClearVotesAPICall } from '@/pointing/pointing'
 import { AppStore } from '@/app/AppStore'
 
 @Component({
@@ -145,12 +145,17 @@ export default class Session extends Vue {
     }
   }
 
-  clearVotes() {
+  async clearVotes() {
     this.clearVotesClicked = true
     this.votesShownClicked = false
     const sessionId = this.$route.params.sessionId
     const facilitatorSessionKey = this.$route.params.facilitatorSessionKey
-    this.$store.dispatch(PointingSessionStore.ACTION_CLEAR_VOTES, { sessionId, facilitatorSessionKey })
+    try {
+      await makeClearVotesAPICall(sessionId, facilitatorSessionKey)
+    } catch (e) {
+      await this.$store.dispatch(AppStore.ACTION_REGISTER_REMOTE_ERROR, 'Error clearing votes')
+      this.votesShownClicked = false
+    }
   }
 
   @Watch('$route')

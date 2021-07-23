@@ -93,7 +93,6 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
   static ACTION_LOAD_FACILITATOR_SESSION = 'loadFacilitatorSession'
   static ACTION_SET_FACILITATOR_SESSION = 'setFacilitatorSession'
   static ACTION_LOAD_SESSION = 'loadSession'
-  static ACTION_CLEAR_VOTES = 'clearVotes'
 
   static MUTATION_SET_ACTIVE_SESSION = 'setActiveSession'
   static MUTATION_END_SESSION = 'clearSession'
@@ -232,12 +231,6 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
   loadSession(request: LoadSessionRequest) {
     request.action = 'loadSession'
     sendMessage(this.socket, request)
-  }
-
-  @Action
-  clearVotes(request: ClearVotesRequest) {
-    request.action = 'clearVotes'
-    this.socket.send(JSON.stringify(request))
   }
 
   @Action

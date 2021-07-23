@@ -39,6 +39,18 @@ export async function updateSession(session: string, facilitatorKey: string, vot
   }
 }
 
+export async function clearVotes(session: string, facilitatorKey: string) {
+  const url = `${apiBase()}/session/${session}/votes`
+  const res = await axios.delete(url, {
+    headers: {
+      Authorization: facilitatorKey
+    }
+  })
+  if (res.status !== 200) {
+    throw new Error(`unexpected response code ${res.status}`)
+  }
+}
+
 export async function createSession(request: StartSessionRequest): Promise<PointingSession> {
   const url = `${apiBase()}/session`
   const res = await axios.post(url, request, {})

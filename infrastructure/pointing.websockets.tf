@@ -35,10 +35,8 @@ resource "aws_apigatewayv2_deployment" "websockets_pointing" {
   depends_on = [
     module.connect_lambda,
     module.disconnect_lambda,
-    module.newSession_lambda,
     module.loadFacilitatorSession_lambda,
     module.loadSession_lambda,
-    module.clearVotes_lambda,
     module.ping_lambda
   ]
 

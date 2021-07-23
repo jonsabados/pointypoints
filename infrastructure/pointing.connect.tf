@@ -1,8 +1,8 @@
 data "aws_iam_policy_document" "connect_lambda_policy" {
   statement {
-    sid       = "AllowLogging"
-    effect    = "Allow"
-    actions   = [
+    sid    = "AllowLogging"
+    effect = "Allow"
+    actions = [
       "logs:CreateLogGroup",
       "logs:CreateLogStream",
       "logs:PutLogEvents"
@@ -13,9 +13,9 @@ data "aws_iam_policy_document" "connect_lambda_policy" {
   }
 
   statement {
-    sid       = "AllowXRayWrite"
-    effect    = "Allow"
-    actions   = [
+    sid    = "AllowXRayWrite"
+    effect = "Allow"
+    actions = [
       "xray:PutTraceSegments",
       "xray:PutTelemetryRecords",
       "xray:GetSamplingRules",

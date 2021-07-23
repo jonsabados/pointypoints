@@ -13,6 +13,6 @@ module "updateSession_lambda" {
   full_path   = aws_api_gateway_resource.session_var.path
 
   request_parameters = {
-    "method.request.path.session"    = true
+    "method.request.path.session" = true
   }
 }

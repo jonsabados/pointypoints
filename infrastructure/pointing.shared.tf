@@ -1,8 +1,8 @@
 data "aws_iam_policy_document" "session_modifying_lambda_policy" {
   statement {
-    sid       = "AllowLogging"
-    effect    = "Allow"
-    actions   = [
+    sid    = "AllowLogging"
+    effect = "Allow"
+    actions = [
       "logs:CreateLogGroup",
       "logs:CreateLogStream",
       "logs:PutLogEvents"
@@ -13,9 +13,9 @@ data "aws_iam_policy_document" "session_modifying_lambda_policy" {
   }
 
   statement {
-    sid       = "AllowXRayWrite"
-    effect    = "Allow"
-    actions   = [
+    sid    = "AllowXRayWrite"
+    effect = "Allow"
+    actions = [
       "xray:PutTraceSegments",
       "xray:PutTelemetryRecords",
       "xray:GetSamplingRules",
@@ -28,9 +28,9 @@ data "aws_iam_policy_document" "session_modifying_lambda_policy" {
   }
 
   statement {
-    sid       = "AllowSessionAccess"
-    effect    = "Allow"
-    actions   = [
+    sid    = "AllowSessionAccess"
+    effect = "Allow"
+    actions = [
       "dynamodb:GetItem",
       "dynamodb:Query",
       "dynamodb:DeleteItem",
@@ -44,9 +44,9 @@ data "aws_iam_policy_document" "session_modifying_lambda_policy" {
   }
 
   statement {
-    sid       = "AllowSessionSocketIndexQuery"
-    effect    = "Allow"
-    actions   = [
+    sid    = "AllowSessionSocketIndexQuery"
+    effect = "Allow"
+    actions = [
       "dynamodb:Query"
     ]
     resources = [
@@ -55,9 +55,9 @@ data "aws_iam_policy_document" "session_modifying_lambda_policy" {
   }
 
   statement {
-    sid       = "AllowMessages"
-    effect    = "Allow"
-    actions   = [
+    sid    = "AllowMessages"
+    effect = "Allow"
+    actions = [
       "execute-api:ManageConnections"
     ]
     resources = [

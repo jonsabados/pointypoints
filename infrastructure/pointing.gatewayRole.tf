@@ -1,8 +1,8 @@
 data "aws_iam_policy_document" "gateway_policy" {
   statement {
-    sid       = "AllowLogging"
-    effect    = "Allow"
-    actions   = [
+    sid    = "AllowLogging"
+    effect = "Allow"
+    actions = [
       "logs:CreateLogGroup",
       "logs:CreateLogStream",
       "logs:DescribeLogGroups",
