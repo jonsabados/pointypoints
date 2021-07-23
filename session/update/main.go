@@ -18,15 +18,6 @@ import (
 	"github.com/jonsabados/pointypoints/session"
 )
 
-func authHeader(headers map[string]string) string {
-	for k, v := range headers {
-		if strings.ToLower(k) == "authorization" {
-			return v
-		}
-	}
-	return ""
-}
-
 func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBuilder, loadSession session.Loader, saveSession session.Saver) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 		ctx = prepareLogs(ctx)
@@ -48,7 +39,7 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 			zerolog.Ctx(ctx).Warn().Str("sessionID", sessionID).Msg("session not found")
 			return api.NewPermissionDeniedResponse(ctx, corsHeaders(request.Headers)), nil
 		}
-		if facilitatorKey := authHeader(request.Headers); sess.FacilitatorSessionKey != facilitatorKey {
+		if facilitatorKey := api.FacilitatorKey(request.Headers); sess.FacilitatorSessionKey != facilitatorKey {
 			zerolog.Ctx(ctx).Warn().Str("sessionID", sessionID).Msg("attempt to show votes with incorrect facilitator key")
 			return api.NewPermissionDeniedResponse(ctx, corsHeaders(request.Headers)), nil
 		}

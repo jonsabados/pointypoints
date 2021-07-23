@@ -32,7 +32,7 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 			return api.NewPermissionDeniedResponse(ctx, corsHeaders(request.Headers)), nil
 		}
 
-		facilitatorKey := request.Headers["Authorization"]
+		facilitatorKey := api.FacilitatorKey(request.Headers)
 		if sess.FacilitatorSessionKey != facilitatorKey {
 			zerolog.Ctx(ctx).Warn().Str("sessionID", sessionID).Msg("attempt to show votes with incorrect facilitator key")
 			return api.NewPermissionDeniedResponse(ctx, corsHeaders(request.Headers)), nil
