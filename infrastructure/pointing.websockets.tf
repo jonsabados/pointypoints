@@ -3,22 +3,18 @@ resource "aws_cloudwatch_log_group" "websockets_gateway_logs" {
   retention_in_days = 7
 }
 
-resource "aws_acm_certificate" "websockets_pointing_cert" {
-  domain_name       = "${local.workspace_prefix}pointing-events.${data.aws_ssm_parameter.domain_name.value}"
-  validation_method = "DNS"
+module "websockets_pointing_cert" {
+  source  = "terraform-aws-modules/acm/aws"
+  version = "3.2.0"
+
+  domain_name         = "${local.workspace_prefix}pointing-events.${data.aws_ssm_parameter.domain_name.value}"
+  zone_id             = data.aws_route53_zone.main_domain.id
+  wait_for_validation = true
 
   tags = {
+    Name      = "${local.workspace_prefix}pointing-events.${data.aws_ssm_parameter.domain_name.value}"
     Workspace = terraform.workspace
   }
-}
-
-resource "aws_route53_record" "pointing_cert_cert_verification_record" {
-  count   = 1
-  name    = aws_acm_certificate.websockets_pointing_cert.domain_validation_options[count.index].resource_record_name
-  type    = aws_acm_certificate.websockets_pointing_cert.domain_validation_options[count.index].resource_record_type
-  zone_id = data.aws_route53_zone.main_domain.id
-  records = [aws_acm_certificate.websockets_pointing_cert.domain_validation_options[count.index].resource_record_value]
-  ttl     = 300
 }
 
 resource "aws_apigatewayv2_api" "websockets_pointing" {
@@ -75,7 +71,7 @@ resource "aws_apigatewayv2_domain_name" "websockets_pointing" {
   domain_name = "${local.workspace_prefix}pointing-events.${data.aws_ssm_parameter.domain_name.value}"
 
   domain_name_configuration {
-    certificate_arn = aws_acm_certificate.websockets_pointing_cert.arn
+    certificate_arn = module.websockets_pointing_cert.acm_certificate_arn
     endpoint_type   = "REGIONAL"
     security_policy = "TLS_1_2"
   }

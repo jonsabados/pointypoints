@@ -73,6 +73,6 @@ locals {
     SESSION_TABLE        = aws_dynamodb_table.session_store.name
     SESSION_SOCKET_INDEX = local.session_socket_index_name
     LOG_LEVEL            = "info"
-    ALLOWED_ORIGINS      = "https://${aws_acm_certificate.ui_cert.domain_name},https://${aws_acm_certificate.ui_cert.subject_alternative_names[0]},http://localhost:8080"
+    ALLOWED_ORIGINS      = "https://${module.ui_cert.distinct_domain_names[0]},https://${module.ui_cert.distinct_domain_names[1]},http://localhost:8080"
   }
 }

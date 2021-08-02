@@ -18,13 +18,13 @@ Once you can do things like execute `aws s3 ls` and see the bucket you have crea
 
 ## Executing
 
-Ensure all of the lambda code has been built (execute `make` from the top level project directory), then execute `terraform apply`. Because the various TLS certs utilized for pointypoints are created via terraform they will take some time to verify, so some creates will fail as certificates will not be found. Wait for verification to complete and then execute `terraform apply` again and you should be in business.
+Ensure all of the lambda code has been built (execute `make` from the top level project directory), then execute `terraform apply`.
 
 It may take some time for DNS to propagate, but once that happens you should be good to point a browser at https://{yourdomain} or https://www.{yourdomain}
 
 ## Workspaces
 
-This project has been setup with workspace support, to spin up a workspace execute `terraform workspace new {whatever}` followed by `terraform apply`. Workspace creation is also subject to the certificate validation constraint so you will need to wait for certs to validate and then execute a second terraform apply. When creating a workspace the application will be deployed to https://{workspace}.{yourdomain} and https://www-{workspace}.{yourdomain}
+This project has been setup with workspace support, to spin up a workspace execute `terraform workspace new {whatever}` followed by `terraform apply`. When creating a workspace the application will be deployed to https://{workspace}.{yourdomain} and https://www-{workspace}.{yourdomain}
 
 #### DANGER!!!
 

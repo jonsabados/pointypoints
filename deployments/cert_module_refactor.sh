@@ -1,0 +1,7 @@
+terraform state mv aws_acm_certificate.rest_pointing_cert module.rest_pointing_cert.aws_acm_certificate.this[0]
+terraform state mv aws_route53_record.rest_cert_cert_verification_record[0] module.rest_pointing_cert.aws_route53_record.validation[0]
+terraform state mv aws_acm_certificate.rest_pointing_cert module.rest_pointing_cert.aws_acm_certificate.this[0]
+terraform state mv aws_route53_record.rest_cert_cert_verification_record[0] module.rest_pointing_cert.aws_route53_record.validation[0]
+terraform state mv aws_acm_certificate.ui_cert module.ui_cert.aws_acm_certificate.this[0]
+terraform state mv aws_route53_record.ui_cert_cert_verification_record[0] module.ui_cert.aws_route53_record.validation[0]
+terraform state mv aws_route53_record.ui_cert_cert_verification_record[1] module.ui_cert.aws_route53_record.validation[1]

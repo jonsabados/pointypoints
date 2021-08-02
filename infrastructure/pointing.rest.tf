@@ -3,22 +3,18 @@ resource "aws_cloudwatch_log_group" "rest_gateway_logs" {
   retention_in_days = 7
 }
 
-resource "aws_acm_certificate" "rest_pointing_cert" {
-  domain_name       = "${local.workspace_prefix}pointing.${data.aws_ssm_parameter.domain_name.value}"
-  validation_method = "DNS"
+module "rest_pointing_cert" {
+  source  = "terraform-aws-modules/acm/aws"
+  version = "3.2.0"
+
+  domain_name         = "${local.workspace_prefix}pointing.${data.aws_ssm_parameter.domain_name.value}"
+  zone_id             = data.aws_route53_zone.main_domain.id
+  wait_for_validation = true
 
   tags = {
+    Name      = "${local.workspace_prefix}pointing.${data.aws_ssm_parameter.domain_name.value}"
     Workspace = terraform.workspace
   }
-}
-
-resource "aws_route53_record" "rest_cert_cert_verification_record" {
-  count   = 1
-  name    = aws_acm_certificate.rest_pointing_cert.domain_validation_options[count.index].resource_record_name
-  type    = aws_acm_certificate.rest_pointing_cert.domain_validation_options[count.index].resource_record_type
-  zone_id = data.aws_route53_zone.main_domain.id
-  records = [aws_acm_certificate.rest_pointing_cert.domain_validation_options[count.index].resource_record_value]
-  ttl     = 300
 }
 
 resource "aws_api_gateway_rest_api" "rest_pointing" {
@@ -31,7 +27,7 @@ resource "aws_api_gateway_rest_api" "rest_pointing" {
 
 resource "aws_api_gateway_domain_name" "rest_pointing" {
   domain_name     = "${local.workspace_prefix}pointing.${data.aws_ssm_parameter.domain_name.value}"
-  certificate_arn = aws_acm_certificate.rest_pointing_cert.arn
+  certificate_arn = module.rest_pointing_cert.acm_certificate_arn
 
   tags = {
     Workspace = terraform.workspace
@@ -153,7 +149,7 @@ module "cors_endpoint" {
   policy = data.aws_iam_policy_document.session_modifying_lambda_policy.json
   lambda_env = {
     LOG_LEVEL       = "info"
-    ALLOWED_ORIGINS = "https://${aws_acm_certificate.ui_cert.domain_name},https://${aws_acm_certificate.ui_cert.subject_alternative_names[0]},http://localhost:8080"
+    ALLOWED_ORIGINS = "https://${module.ui_cert.distinct_domain_names[0]},https://${module.ui_cert.distinct_domain_names[1]},http://localhost:8080"
   }
 
   http_method = "OPTIONS"
