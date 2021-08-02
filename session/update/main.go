@@ -25,7 +25,7 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 		err := json.Unmarshal([]byte(request.Body), r)
 		if err != nil {
 			zerolog.Ctx(ctx).Warn().Str("error", fmt.Sprintf("%+v", err)).Msg("error reading load request body")
-			return api.NewInternalServerError(ctx, corsHeaders(request.Headers)), nil
+			return api.NewInternalServerError(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
 
 		sessionID := request.PathParameters["session"]
@@ -33,15 +33,15 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 		sess, err := loadSession(ctx, sessionID)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error reading session")
-			return api.NewPermissionDeniedResponse(ctx, corsHeaders(request.Headers)), nil
+			return api.NewPermissionDeniedResponse(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
 		if sess == nil {
 			zerolog.Ctx(ctx).Warn().Str("sessionID", sessionID).Msg("session not found")
-			return api.NewPermissionDeniedResponse(ctx, corsHeaders(request.Headers)), nil
+			return api.NewPermissionDeniedResponse(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
 		if facilitatorKey := api.FacilitatorKey(request.Headers); sess.FacilitatorSessionKey != facilitatorKey {
 			zerolog.Ctx(ctx).Warn().Str("sessionID", sessionID).Msg("attempt to show votes with incorrect facilitator key")
-			return api.NewPermissionDeniedResponse(ctx, corsHeaders(request.Headers)), nil
+			return api.NewPermissionDeniedResponse(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
 
 		sess.VotesShown = r.VotesShown
@@ -50,9 +50,9 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 		err = saveSession(ctx, *sess)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error saving session")
-			return api.NewInternalServerError(ctx, corsHeaders(request.Headers)), nil
+			return api.NewInternalServerError(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
-		return api.NewSuccessResponse(ctx, corsHeaders(request.Headers), "session updated"), nil
+		return api.NewSuccessResponse(ctx, corsHeaders(ctx, request.Headers), "session updated"), nil
 	}
 }
 

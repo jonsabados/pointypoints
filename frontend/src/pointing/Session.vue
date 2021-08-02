@@ -70,7 +70,7 @@ import UserDisplayName from '@/user/UserDisplayName.vue'
 import { v4 as uuidv4 } from 'uuid'
 import Pointing from '@/pointing/Pointing.vue'
 import PointingResults from '@/pointing/PointingResults.vue'
-import { joinSession } from '@/pointing/pointing'
+import { joinSession, watchSession } from '@/pointing/pointing'
 import { AppStore } from '@/app/AppStore'
 
 @Component({
@@ -123,7 +123,7 @@ export default class Session extends Vue {
         handle: this.handle
       })
     } catch (e) {
-      await this.$store.dispatch(AppStore.ACTION_REGISTER_REMOTE_ERROR, 'Error registering vote')
+      await this.$store.dispatch(AppStore.ACTION_REGISTER_REMOTE_ERROR, 'Error joining session')
       this.detailsSet = false
     }
   }
@@ -133,9 +133,22 @@ export default class Session extends Vue {
   }
 
   @Watch('$route')
-  routeParamsChanged() {
+  async routeParamsChanged() {
+    if (!this.hasConnectionId) {
+      // we need our connection id
+      return
+    }
     const sessionId = this.$route.params.sessionId
-    this.$store.dispatch(PointingSessionStore.ACTION_LOAD_SESSION, { sessionId })
+    try {
+      await watchSession(sessionId, this.$store.state.pointingSession.connectionId as string)
+    } catch (e) {
+      await this.$store.dispatch(AppStore.ACTION_REGISTER_REMOTE_ERROR, 'Error watching session')
+    }
+  }
+
+  @Watch('hasConnectionId')
+  watchConnectionId() {
+    this.routeParamsChanged()
   }
 }
 </script>

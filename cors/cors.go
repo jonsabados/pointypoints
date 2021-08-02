@@ -1,11 +1,16 @@
 package cors
 
-import "strings"
+import (
+	"context"
+	"strings"
 
-type ResponseHeaderBuilder func(inboundHeaders map[string]string) map[string]string
+	"github.com/rs/zerolog"
+)
+
+type ResponseHeaderBuilder func(ctx context.Context, inboundHeaders map[string]string) map[string]string
 
 func NewResponseHeaderBuilder(allowedDomains []string) ResponseHeaderBuilder {
-	return func(inboundHeaders map[string]string) map[string]string {
+	return func(ctx context.Context, inboundHeaders map[string]string) map[string]string {
 		origin := ""
 		for k, v := range inboundHeaders {
 			if strings.ToLower(k) == "origin" {
@@ -19,6 +24,8 @@ func NewResponseHeaderBuilder(allowedDomains []string) ResponseHeaderBuilder {
 			headers["Access-Control-Allow-Headers"] = "Authorization,Content-Type"
 			headers["Access-Control-Expose-Headers"] = "Location"
 			headers["Access-Control-Allow-Methods"] = "OPTIONS,HEAD,GET,POST,PUT,DELETE"
+		} else {
+			zerolog.Ctx(ctx).Warn().Interface("allowedDomains", allowedDomains).Str("origin", origin).Msg("disallowed origin")
 		}
 		headers["Vary"] = "Origin"
 		return headers

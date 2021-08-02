@@ -25,7 +25,7 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 		err := json.Unmarshal([]byte(request.Body), toStart)
 		if err != nil {
 			zerolog.Ctx(ctx).Warn().Str("error", fmt.Sprintf("%+v", err)).Msg("error session start reading request body")
-			return api.NewInternalServerError(ctx, corsHeaders(request.Headers)), nil
+			return api.NewInternalServerError(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
 		errors := make([]string, 0)
 		if toStart.Facilitator.Name == "" {
@@ -38,7 +38,7 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 			errors = append(errors, "connection id is required")
 		}
 		if len(errors) > 0 {
-			return api.NewValidationFailureResponse(ctx, corsHeaders(request.Headers), api.ValidationError{
+			return api.NewValidationFailureResponse(ctx, corsHeaders(ctx, request.Headers), api.ValidationError{
 				Errors: errors,
 			}), nil
 		}
@@ -48,10 +48,10 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 		sess, err := startSession(ctx, *toStart)
 		if err != nil {
 			zerolog.Ctx(ctx).Warn().Str("error", fmt.Sprintf("%+v", err)).Msg("error starting session")
-			return api.NewInternalServerError(ctx, corsHeaders(request.Headers)), nil
+			return api.NewInternalServerError(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
 
-		return api.NewSuccessResponse(ctx, corsHeaders(request.Headers), sess), nil
+		return api.NewSuccessResponse(ctx, corsHeaders(ctx, request.Headers), sess), nil
 	}
 }
 

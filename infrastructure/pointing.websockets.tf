@@ -35,7 +35,6 @@ resource "aws_apigatewayv2_deployment" "websockets_pointing" {
       module.connect_lambda.change_keys,
       module.disconnect_lambda.change_keys,
       module.loadFacilitatorSession_lambda.change_keys,
-      module.loadSession_lambda.change_keys,
       module.ping_lambda.change_keys,
     )))
   }

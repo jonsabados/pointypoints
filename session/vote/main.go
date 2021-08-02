@@ -25,7 +25,7 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 		err := json.Unmarshal([]byte(request.Body), r)
 		if err != nil {
 			zerolog.Ctx(ctx).Warn().Str("error", fmt.Sprintf("%+v", err)).Msg("error reading load request body")
-			return api.NewInternalServerError(ctx, corsHeaders(request.Headers)), nil
+			return api.NewInternalServerError(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
 
 		// if requests made it to the lambda without a session or connection path param things have gone wrong and a panic is OK
@@ -33,11 +33,11 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 		sess, err := loadSession(ctx, sessionID)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error reading session")
-			return api.NewPermissionDeniedResponse(ctx, corsHeaders(request.Headers)), nil
+			return api.NewPermissionDeniedResponse(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
 		if sess == nil {
 			zerolog.Ctx(ctx).Warn().Str("sessionID", sessionID).Msg("session not found")
-			return api.NewPermissionDeniedResponse(ctx, corsHeaders(request.Headers)), nil
+			return api.NewPermissionDeniedResponse(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
 		zerolog.Ctx(ctx).Debug().Interface("session", sess).Msg("loaded session")
 
@@ -56,7 +56,7 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 			}
 		}
 		if user == nil {
-			return api.NewPermissionDeniedResponse(ctx, corsHeaders(request.Headers)), nil
+			return api.NewPermissionDeniedResponse(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
 
 		user.CurrentVote = &r.Vote
@@ -64,15 +64,15 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 		err = saveUser(ctx, sessionID, *user, userType)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error saving session")
-			return api.NewInternalServerError(ctx, corsHeaders(request.Headers)), nil
+			return api.NewInternalServerError(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
 		err = notifyParticipants(ctx, *sess)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error notifying participants")
-			return api.NewInternalServerError(ctx, corsHeaders(request.Headers)), nil
+			return api.NewInternalServerError(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
 
-		response := api.NewSuccessResponse(ctx, corsHeaders(request.Headers), "Vote Recorded")
+		response := api.NewSuccessResponse(ctx, corsHeaders(ctx, request.Headers), "Vote Recorded")
 		return response, nil
 	}
 }

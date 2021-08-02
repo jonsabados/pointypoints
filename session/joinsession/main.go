@@ -25,7 +25,7 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 		err := json.Unmarshal([]byte(request.Body), &joinRequest)
 		if err != nil {
 			zerolog.Ctx(ctx).Warn().Str("error", fmt.Sprintf("%+v", err)).Msg("error reading load request body")
-			return api.NewInternalServerError(ctx, corsHeaders(request.Headers)), nil
+			return api.NewInternalServerError(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
 
 		errors := make([]string, 0)
@@ -36,7 +36,7 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 			errors = append(errors, "connection id is required")
 		}
 		if len(errors) > 0 {
-			return api.NewValidationFailureResponse(ctx, corsHeaders(request.Headers), api.ValidationError{
+			return api.NewValidationFailureResponse(ctx, corsHeaders(ctx, request.Headers), api.ValidationError{
 				Errors: errors,
 			}), nil
 		}
@@ -51,21 +51,21 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 		err = saveUser(ctx, sessionID, user, session.Participant)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error saving session")
-			return api.NewInternalServerError(ctx, corsHeaders(request.Headers)), nil
+			return api.NewInternalServerError(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
 
 		sess, err := loadSession(ctx, sessionID)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error reading session")
-			return api.NewPermissionDeniedResponse(ctx, corsHeaders(request.Headers)), nil
+			return api.NewPermissionDeniedResponse(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
 		err = notifyParticipants(ctx, *sess)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error notifying participants of change")
-			return api.NewPermissionDeniedResponse(ctx, corsHeaders(request.Headers)), nil
+			return api.NewPermissionDeniedResponse(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
 
-		return api.NewSuccessResponse(ctx, corsHeaders(request.Headers), "session joined"), nil
+		return api.NewSuccessResponse(ctx, corsHeaders(ctx, request.Headers), "session joined"), nil
 	}
 }
 

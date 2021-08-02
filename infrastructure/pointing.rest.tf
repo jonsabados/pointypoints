@@ -40,6 +40,7 @@ resource "aws_api_gateway_deployment" "rest_api" {
   triggers = {
     redeployment = sha1(jsonencode(concat(
       module.cors_endpoint.change_keys,
+      module.watchSession_lambda.change_keys,
       module.joinSession_lambda.change_keys,
       module.vote_lambda.change_keys,
       module.updateSession_lambda.change_keys,
@@ -74,7 +75,7 @@ resource "aws_route53_record" "pointing" {
 
 resource "aws_api_gateway_base_path_mapping" "rest_pointing" {
   api_id      = aws_api_gateway_rest_api.rest_pointing.id
-  stage_name  = aws_api_gateway_deployment.rest_api.stage_name
+  stage_name  = aws_api_gateway_stage.rest_pointing_main.stage_name
   domain_name = aws_api_gateway_domain_name.rest_pointing.domain_name
 }
 
@@ -101,7 +102,6 @@ resource "aws_api_gateway_resource" "user_var" {
   parent_id   = aws_api_gateway_resource.user_path.id
   path_part   = "{user}"
 }
-
 
 data "aws_iam_policy_document" "cors_lambda_policy" {
   statement {

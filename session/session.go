@@ -55,8 +55,8 @@ type LoadFacilitatorSessionRequest struct {
 	MarkActive            bool   `json:"markActive"`
 }
 
-type LoadSessionRequest struct {
-	SessionID string `json:"sessionId"`
+type WatchSessionRequest struct {
+	ConnectionID string `json:"connectionId"`
 }
 
 type VoteRequest struct {

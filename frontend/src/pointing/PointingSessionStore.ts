@@ -8,12 +8,6 @@ const SESSION_LOADED = 'SESSION_LOADED'
 const SESSION_UPDATED = 'SESSION_UPDATED'
 const PING = 'PING'
 
-export interface JoinSessionRequest {
-  action?: 'joinSession'
-  sessionId: string
-  user: User
-}
-
 export interface LoadFacilitatorSessionRequest {
   action?: 'loadFacilitatorSession'
   sessionId: string
@@ -25,18 +19,6 @@ export interface LoadSessionRequest {
   action?: 'loadSession'
   sessionId: string
   markActive: boolean
-}
-
-export interface VoteRequest {
-  action?: 'vote'
-  sessionId: string
-  vote: string
-}
-
-export interface ClearVotesRequest {
-  action?: 'clearVotes'
-  sessionId: string
-  facilitatorSessionKey: string
 }
 
 export interface PointingSession {
@@ -92,7 +74,6 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
   static ACTION_END_SESSION = 'endSession'
   static ACTION_LOAD_FACILITATOR_SESSION = 'loadFacilitatorSession'
   static ACTION_SET_FACILITATOR_SESSION = 'setFacilitatorSession'
-  static ACTION_LOAD_SESSION = 'loadSession'
 
   static MUTATION_SET_ACTIVE_SESSION = 'setActiveSession'
   static MUTATION_END_SESSION = 'clearSession'
@@ -225,12 +206,6 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
     const view = convertFacilitatorSession(session)
     this.context.commit(PointingSessionStore.MUTATION_SESSION_ADDED, view)
     this.context.commit(PointingSessionStore.MUTATION_SET_ACTIVE_SESSION, view)
-  }
-
-  @Action
-  loadSession(request: LoadSessionRequest) {
-    request.action = 'loadSession'
-    sendMessage(this.socket, request)
   }
 
   @Action

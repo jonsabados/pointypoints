@@ -11,13 +11,17 @@ import (
 	"github.com/aws/aws-xray-sdk-go/xray"
 
 	"github.com/jonsabados/pointypoints/cors"
+	"github.com/jonsabados/pointypoints/lambdautil"
+	"github.com/jonsabados/pointypoints/logging"
 )
 
-func newHandler(headers cors.ResponseHeaderBuilder) func (ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func newHandler(prepareLogs logging.Preparer, headers cors.ResponseHeaderBuilder) func (ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+		ctx = prepareLogs(ctx)
+
 		return events.APIGatewayProxyResponse{
 			StatusCode:        http.StatusNoContent,
-			Headers:           headers(request.Headers),
+			Headers:           headers(ctx, request.Headers),
 			Body:              "",
 			IsBase64Encoded:   false,
 		}, nil
@@ -26,6 +30,9 @@ func newHandler(headers cors.ResponseHeaderBuilder) func (ctx context.Context, r
 
 
 func main() {
+	lambdautil.CoreStartup()
+	logPreparer := logging.NewPreparer()
+
 	err := xray.Configure(xray.Config{
 		LogLevel: "warn",
 	})
@@ -34,5 +41,5 @@ func main() {
 	}
 
 	allowedDomains := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
-	lambda.Start(newHandler(cors.NewResponseHeaderBuilder(allowedDomains)))
+	lambda.Start(newHandler(logPreparer, cors.NewResponseHeaderBuilder(allowedDomains)))
 }

@@ -26,6 +26,14 @@ export async function joinSession(session: string, userID: string, user: User) {
   }
 }
 
+export async function watchSession(session: string, connectionId: string) {
+  const url = `${apiBase()}/session/${session}/watcher`
+  const res = await axios.post(url, { connectionId }, {})
+  if (res.status !== 200) {
+    throw new Error(`unexpected response code ${res.status}`)
+  }
+}
+
 export async function updateSession(session: string, facilitatorKey: string, votesShown: boolean, facilitatorPoints: boolean) {
   const url = `${apiBase()}/session/${session}`
   const request = { votesShown, facilitatorPoints }
