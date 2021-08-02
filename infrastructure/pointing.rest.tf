@@ -35,19 +35,17 @@ resource "aws_api_gateway_domain_name" "rest_pointing" {
 }
 
 resource "aws_api_gateway_deployment" "rest_api" {
-  depends_on = [
-    module.cors_endpoint,
-    module.joinSession_lambda,
-    module.vote_lambda,
-    module.updateSession_lambda,
-    module.newSession_lambda,
-    module.clearVotes_lambda,
-  ]
   rest_api_id = aws_api_gateway_rest_api.rest_pointing.id
-  stage_name  = "${local.workspace_prefix}rest-main"
 
-  variables = {
-    "deployed_at" : timestamp()
+  triggers = {
+    redeployment = sha1(jsonencode(concat(
+      module.cors_endpoint.change_keys,
+      module.joinSession_lambda.change_keys,
+      module.vote_lambda.change_keys,
+      module.updateSession_lambda.change_keys,
+      module.newSession_lambda.change_keys,
+      module.clearVotes_lambda.change_keys
+    )))
   }
 
   lifecycle {

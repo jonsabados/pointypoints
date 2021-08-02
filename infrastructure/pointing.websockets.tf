@@ -28,15 +28,17 @@ resource "aws_apigatewayv2_api" "websockets_pointing" {
 }
 
 resource "aws_apigatewayv2_deployment" "websockets_pointing" {
-  depends_on = [
-    module.connect_lambda,
-    module.disconnect_lambda,
-    module.loadFacilitatorSession_lambda,
-    module.loadSession_lambda,
-    module.ping_lambda
-  ]
-
   api_id = aws_apigatewayv2_api.websockets_pointing.id
+
+  triggers = {
+    redeployment = sha1(jsonencode(concat(
+      module.connect_lambda.change_keys,
+      module.disconnect_lambda.change_keys,
+      module.loadFacilitatorSession_lambda.change_keys,
+      module.loadSession_lambda.change_keys,
+      module.ping_lambda.change_keys,
+    )))
+  }
 
   lifecycle {
     create_before_destroy = true

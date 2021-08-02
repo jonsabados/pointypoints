@@ -15,7 +15,7 @@ module "ui_cert" {
   source  = "terraform-aws-modules/acm/aws"
   version = "3.2.0"
 
-  domain_name         = "${local.workspace_domain_prefix}${data.aws_ssm_parameter.domain_name.value}"
+  domain_name = "${local.workspace_domain_prefix}${data.aws_ssm_parameter.domain_name.value}"
   subject_alternative_names = [
     "${terraform.workspace == "default" ? "www." : "www-"}${local.workspace_domain_prefix}${data.aws_ssm_parameter.domain_name.value}"
   ]
