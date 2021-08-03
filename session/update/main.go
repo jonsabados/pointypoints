@@ -52,7 +52,7 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error saving session")
 			return api.NewInternalServerError(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
-		return api.NewSuccessResponse(ctx, corsHeaders(ctx, request.Headers), "session updated"), nil
+		return api.NewNoContentResponse(ctx, corsHeaders(ctx, request.Headers)), nil
 	}
 }
 

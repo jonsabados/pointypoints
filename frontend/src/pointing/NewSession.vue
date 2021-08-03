@@ -57,7 +57,7 @@ export default class NewSession extends Vue {
   creatingSession: boolean = false
 
   get sessionActive(): boolean {
-    return this.$store.state.pointingSession.sessionActive
+    return !!this.$store.state.pointingSession.currentSession
   }
 
   get disableSubmit(): boolean {
@@ -84,7 +84,8 @@ export default class NewSession extends Vue {
     }
     try {
       const session = await createSession(request)
-      await this.$store.dispatch(PointingSessionStore.ACTION_SET_FACILITATOR_SESSION, session)
+      await this.$store.commit(PointingSessionStore.MUTATION_SET_SESSION_ID, session.sessionId)
+      await this.$store.commit(PointingSessionStore.MUTATION_SET_SESSION, session)
     } catch (e) {
       this.creatingSession = false
       await this.$store.dispatch(AppStore.ACTION_REGISTER_REMOTE_ERROR, 'Error creating session')
@@ -93,7 +94,7 @@ export default class NewSession extends Vue {
 
   @Watch('sessionActive')
   currentSessionChanged() {
-    if (this.$store.state.pointingSession.sessionActive) {
+    if (this.sessionActive) {
       this.$router.push({
         name: FACILITATE_ROUTE_NAME,
         params: {

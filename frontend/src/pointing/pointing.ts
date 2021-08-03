@@ -13,7 +13,7 @@ export async function vote(session: string, userID: string, vote: string) {
   const url = `${apiBase()}/session/${session}/user/${userID}/vote`
   const body = { vote }
   const res = await axios.put(url, body, {})
-  if (res.status !== 200) {
+  if (res.status !== 204) {
     throw new Error(`unexpected response code ${res.status}`)
   }
 }
@@ -31,19 +31,19 @@ export async function facilitateSession(session: string, connectionId: string, f
   return res.data.result
 }
 
-export async function joinSession(session: string, userID: string, user: User): Promise<PointingSession> {
+export async function joinSession(session: string, userID: string, user: User) {
   const url = `${apiBase()}/session/${session}/user/${userID}`
   const res = await axios.put(url, user, {})
-  if (res.status !== 200) {
+  if (res.status !== 204) {
     throw new Error(`unexpected response code ${res.status}`)
   }
   return res.data.result
 }
 
-export async function watchSession(session: string, connectionId: string): Promise<PointingSession> {
+export async function watchSession(session: string, connectionId: string) {
   const url = `${apiBase()}/session/${session}/watcher`
   const res = await axios.post(url, { connectionId }, {})
-  if (res.status !== 200) {
+  if (res.status !== 204) {
     throw new Error(`unexpected response code ${res.status}`)
   }
   return res.data.result
@@ -57,7 +57,7 @@ export async function updateSession(session: string, facilitatorKey: string, vot
       Authorization: facilitatorKey
     }
   })
-  if (res.status !== 200) {
+  if (res.status !== 204) {
     throw new Error(`unexpected response code ${res.status}`)
   }
 }
@@ -69,7 +69,7 @@ export async function clearVotes(session: string, facilitatorKey: string) {
       Authorization: facilitatorKey
     }
   })
-  if (res.status !== 200) {
+  if (res.status !== 204) {
     throw new Error(`unexpected response code ${res.status}`)
   }
 }

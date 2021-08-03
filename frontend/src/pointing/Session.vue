@@ -95,10 +95,7 @@ export default class Session extends Vue {
   }
 
   get sessionLoaded(): boolean {
-    const sessionId = this.$route.params.sessionId
-    return this.$store.state.pointingSession.knownSessions.find((s: PointingSession) => {
-      return s.sessionId === sessionId
-    })
+    return !!this.$store.state.pointingSession.currentSession
   }
 
   get isParticipating(): boolean {
@@ -108,10 +105,7 @@ export default class Session extends Vue {
   }
 
   get currentSession(): PointingSession {
-    const sessionId = this.$route.params.sessionId
-    return this.$store.state.pointingSession.knownSessions.find((s: PointingSession) => {
-      return s.sessionId === sessionId
-    })
+    return this.$store.state.pointingSession.currentSession
   }
 
   async joinSession() {
@@ -123,7 +117,7 @@ export default class Session extends Vue {
         handle: this.handle
       })
     } catch (e) {
-      await this.$store.dispatch(AppStore.ACTION_REGISTER_REMOTE_ERROR, 'Error joining session')
+      await this.$store.dispatch(AppStore.ACTION_REGISTER_REMOTE_ERROR, e)
       this.detailsSet = false
     }
   }
@@ -139,10 +133,11 @@ export default class Session extends Vue {
       return
     }
     const sessionId = this.$route.params.sessionId
+    await this.$store.commit(PointingSessionStore.MUTATION_SET_SESSION_ID, sessionId)
     try {
       await watchSession(sessionId, this.$store.state.pointingSession.connectionId as string)
     } catch (e) {
-      await this.$store.dispatch(AppStore.ACTION_REGISTER_REMOTE_ERROR, 'Error watching session')
+      await this.$store.dispatch(AppStore.ACTION_REGISTER_REMOTE_ERROR, e)
     }
   }
 

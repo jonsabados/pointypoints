@@ -72,8 +72,7 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 			return api.NewInternalServerError(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
 
-		response := api.NewSuccessResponse(ctx, corsHeaders(ctx, request.Headers), "Vote Recorded")
-		return response, nil
+		return api.NewNoContentResponse(ctx, corsHeaders(ctx, request.Headers)), nil
 	}
 }
 

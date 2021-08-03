@@ -12,10 +12,8 @@ import (
 type MessageType string
 
 const (
-	SessionUpdated           = MessageType("SESSION_UPDATED")
-	FacilitatorSessionLoaded = MessageType("FACILITATOR_SESSION_LOADED")
-	SessionLoaded            = MessageType("SESSION_LOADED")
-	Ping                     = MessageType("PING")
+	SessionUpdated = MessageType("SESSION_UPDATED")
+	Ping           = MessageType("PING")
 )
 
 type ConnectionPoster interface {

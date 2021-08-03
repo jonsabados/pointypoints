@@ -2,28 +2,10 @@ import { Action, Module, Mutation, VuexModule } from 'vuex-module-decorators'
 import { AppStore } from '@/app/AppStore'
 import { User } from '@/user/user'
 
-const EVENT_TYPE_SESSION_CREATED = 'SESSION_CREATED'
-const FACILITATOR_SESSION_LOADED = 'FACILITATOR_SESSION_LOADED'
-const SESSION_LOADED = 'SESSION_LOADED'
 const SESSION_UPDATED = 'SESSION_UPDATED'
 const PING = 'PING'
 
-export interface LoadFacilitatorSessionRequest {
-  action?: 'loadFacilitatorSession'
-  sessionId: string
-  facilitatorSessionKey: string
-  markActive: boolean
-}
-
-export interface LoadSessionRequest {
-  action?: 'loadSession'
-  sessionId: string
-  markActive: boolean
-}
-
 export interface PointingSession {
-  isFacilitator: boolean
-  facilitatorSessionKey?: string
   facilitatorPoints: boolean
   sessionId: string
   facilitator: User
@@ -32,10 +14,12 @@ export interface PointingSession {
 }
 
 export interface PointingSessionState {
+  facilitating: boolean
   connectionId: string | null
-  sessionActive: boolean
+  sessionId: string | null
   currentSession: PointingSession | null
-  knownSessions: Array<PointingSession>
+  name: string | null
+  handle: string | null
 }
 
 function sendMessage(socket: WebSocket, message: any) {
@@ -56,40 +40,35 @@ function sendMessage(socket: WebSocket, message: any) {
   }
 }
 
-function convertFacilitatorSession(view: any): PointingSession {
-  return {
-    isFacilitator: true,
-    facilitatorSessionKey: view.facilitatorSessionKey,
-    sessionId: view.sessionId,
-    facilitator: view.facilitator,
-    participants: view.participants,
-    facilitatorPoints: view.facilitatorPoints,
-    votesShown: view.votesShown
-  }
-}
-
 @Module
 export class PointingSessionStore extends VuexModule<PointingSessionState> {
   static ACTION_INITIALIZE = 'initialize'
   static ACTION_END_SESSION = 'endSession'
-  static ACTION_SET_FACILITATOR_SESSION = 'setFacilitatorSession'
 
-  static MUTATION_SET_ACTIVE_SESSION = 'setActiveSession'
+  static MUTATION_SET_FACILITATING = 'setFacilitating'
+  static MUTATION_SET_SESSION = 'setSession'
+  static MUTATION_SET_SESSION_ID = 'setSessionId'
   static MUTATION_END_SESSION = 'clearSession'
-  static MUTATION_SESSION_ADDED = 'sessionAdded'
-  static MUTATION_SET_SESSIONS = 'setSessions'
   static MUTATION_SET_CONNECTION_ID = 'setConnectionId'
+
+  facilitating: boolean = false
 
   connectionId: string | null = null
 
-  sessionActive: boolean = false
+  sessionId: string | null = null
 
-  // this sucks and needs to go away but no time to do it cleanly - its the facilitator session
-  currentSession: PointingSession | undefined
+  currentSession: PointingSession | null = null
 
-  knownSessions: Array<PointingSession> = []
+  name: string | null = null
+
+  handle: string | null = null
 
   socket: WebSocket = new WebSocket(`${process.env['VUE_APP_POINTING_SOCKET_URL']}/`)
+
+  @Mutation
+  setFacilitating(facilitating: boolean) {
+    this.facilitating = facilitating
+  }
 
   @Mutation
   setConnectionId(connectionId: string) {
@@ -98,34 +77,18 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
 
   @Mutation
   clearSession() {
-    this.sessionActive = false
-    this.currentSession = undefined
+    this.currentSession = null
+    this.sessionId = null
   }
 
   @Mutation
-  setActiveSession(session: PointingSession) {
+  setSession(session: PointingSession) {
     this.currentSession = session
-    this.sessionActive = true
   }
 
   @Mutation
-  sessionAdded(session: PointingSession) {
-    this.knownSessions.push(session)
-  }
-
-  @Mutation
-  setSessions(sessions: Array<PointingSession>) {
-    this.knownSessions = sessions
-    if (this.currentSession) {
-      sessions.forEach((s) => {
-        if (this.currentSession && s.sessionId === this.currentSession.sessionId) {
-          // this also sucks but there is something with updates not being seen that I don't understand currently and don't have time to figure out
-          this.currentSession.participants = s.participants
-          this.currentSession.votesShown = s.votesShown
-          this.currentSession.facilitator = s.facilitator
-        }
-      })
-    }
+  setSessionId(sessionId: string) {
+    this.sessionId = sessionId
   }
 
   @Action
@@ -148,32 +111,11 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
         return
       }
       switch (eventData.type) {
-        case EVENT_TYPE_SESSION_CREATED: {
-          const session = convertFacilitatorSession(eventData.body)
-          this.context.commit(PointingSessionStore.MUTATION_SESSION_ADDED, session)
-          this.context.commit(PointingSessionStore.MUTATION_SET_ACTIVE_SESSION, session)
-          break
-        }
-        case FACILITATOR_SESSION_LOADED: {
-          const session = convertFacilitatorSession(eventData.body.session)
-          this.context.commit(PointingSessionStore.MUTATION_SESSION_ADDED, session)
-          this.context.commit(PointingSessionStore.MUTATION_SET_ACTIVE_SESSION, session)
-          break
-        }
-        case SESSION_LOADED: {
-          this.context.commit(PointingSessionStore.MUTATION_SESSION_ADDED, eventData.body)
-          break
-        }
         case SESSION_UPDATED: {
-          const newSessions: PointingSession[] = []
-          this.knownSessions.forEach((s) => {
-            if (s.sessionId === eventData.body.sessionId) {
-              newSessions.push(eventData.body)
-            } else {
-              newSessions.push(s)
-            }
-          })
-          this.context.commit(PointingSessionStore.MUTATION_SET_SESSIONS, newSessions)
+          const session = eventData.body as PointingSession
+          if (session.sessionId === this.sessionId) {
+            this.context.commit(PointingSessionStore.MUTATION_SET_SESSION, session)
+          }
           break
         }
         case PING: {
@@ -185,13 +127,6 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
           console.log(eventData)
       }
     }
-  }
-
-  @Action
-  setFacilitatorSession(session: PointingSession) {
-    const view = convertFacilitatorSession(session)
-    this.context.commit(PointingSessionStore.MUTATION_SESSION_ADDED, view)
-    this.context.commit(PointingSessionStore.MUTATION_SET_ACTIVE_SESSION, view)
   }
 
   @Action

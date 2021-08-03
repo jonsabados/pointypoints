@@ -18,10 +18,6 @@ import (
 	"github.com/jonsabados/pointypoints/session"
 )
 
-type LoadResponse struct {
-	Session    session.CompleteSessionView `json:"session"`
-}
-
 func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBuilder, loadSession session.Loader, dispatch api.MessageDispatcher, saveUser session.UserSaver) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 		ctx = prepareLogs(ctx)
@@ -57,10 +53,8 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 		}
 
 		err = dispatch(ctx, l.ConnectionID, api.Message{
-			Type: api.FacilitatorSessionLoaded,
-			Body: LoadResponse{
-				Session:    *sess,
-			},
+			Type: api.SessionUpdated,
+			Body: *sess,
 		})
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error dispatching message")

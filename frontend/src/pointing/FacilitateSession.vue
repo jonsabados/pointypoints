@@ -114,7 +114,7 @@ export default class Session extends Vue {
   }
 
   get isSessionReady(): boolean {
-    return this.$store.state.pointingSession.sessionActive
+    return !!this.$store.state.pointingSession.currentSession
   }
 
   get votesShown(): boolean {
@@ -131,6 +131,7 @@ export default class Session extends Vue {
 
   mounted() {
     this.routeParamsChanged()
+    this.$store.commit(PointingSessionStore.MUTATION_SET_FACILITATING, true)
   }
 
   async showVotes() {
@@ -144,7 +145,7 @@ export default class Session extends Vue {
     try {
       await updateSession(sessionId, facilitatorSessionKey, true, this.currentSession.facilitatorPoints)
     } catch (e) {
-      await this.$store.dispatch(AppStore.ACTION_REGISTER_REMOTE_ERROR, 'Error showing votes')
+      await this.$store.dispatch(AppStore.ACTION_REGISTER_REMOTE_ERROR, e)
       this.votesShownClicked = false
     }
   }
@@ -157,7 +158,7 @@ export default class Session extends Vue {
     try {
       await makeClearVotesAPICall(sessionId, facilitatorSessionKey)
     } catch (e) {
-      await this.$store.dispatch(AppStore.ACTION_REGISTER_REMOTE_ERROR, 'Error clearing votes')
+      await this.$store.dispatch(AppStore.ACTION_REGISTER_REMOTE_ERROR, e)
       this.votesShownClicked = false
     }
   }
@@ -169,11 +170,12 @@ export default class Session extends Vue {
       return
     }
     const sessionId = this.$route.params.sessionId
+    await this.$store.commit(PointingSessionStore.MUTATION_SET_SESSION_ID, sessionId)
     const facilitatorSessionKey = this.$route.params.facilitatorSessionKey
     try {
       await facilitateSession(sessionId, this.$store.state.pointingSession.connectionId as string, facilitatorSessionKey)
     } catch (e) {
-      await this.$store.dispatch(AppStore.ACTION_REGISTER_REMOTE_ERROR, 'Error facilitating session')
+      await this.$store.dispatch(AppStore.ACTION_REGISTER_REMOTE_ERROR, e)
     }
   }
 

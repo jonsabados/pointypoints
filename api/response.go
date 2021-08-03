@@ -31,6 +31,13 @@ func NewSuccessResponse(ctx context.Context, baseHeaders map[string]string, resu
 	}, responseHeaders(baseHeaders), http.StatusOK)
 }
 
+func NewNoContentResponse(ctx context.Context, baseHeaders map[string]string) events.APIGatewayProxyResponse {
+	return events.APIGatewayProxyResponse{
+		StatusCode: http.StatusNoContent,
+		Headers:    baseHeaders,
+	}
+}
+
 func NewInternalServerError(ctx context.Context, baseHeaders map[string]string) events.APIGatewayProxyResponse {
 	return wrapResponse(Response{
 		Result:    "an internal server error has occurred",

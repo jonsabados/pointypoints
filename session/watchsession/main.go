@@ -46,14 +46,13 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 			return api.NewInternalServerError(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
 		err = dispatch(ctx, w.ConnectionID, api.Message{
-			Type: api.SessionLoaded,
+			Type: api.SessionUpdated,
 			Body: session.ToParticipantView(*sess, w.ConnectionID),
 		})
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error dispatching message")
 		}
-		// technically this should be a created response... but meh, this will work for now
-		return api.NewSuccessResponse(ctx, corsHeaders(ctx, request.Headers), session.ToParticipantView(*sess, w.ConnectionID)), nil
+		return api.NewNoContentResponse(ctx, corsHeaders(ctx, request.Headers)), nil
 	}
 }
 
