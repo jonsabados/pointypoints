@@ -192,6 +192,6 @@ export default class Session extends Vue {
 
 <style lang="scss">
 .clickable {
-  cursor: grab;
+  cursor: pointer;
 }
 </style>
