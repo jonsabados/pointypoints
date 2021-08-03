@@ -3,7 +3,7 @@ import App from './App.vue'
 import router from './navigation/router'
 import Vuex from 'vuex'
 import VueRouter from 'vue-router'
-import Bootstrap from 'bootstrap-vue'
+import { BootstrapVue, BootstrapVueIcons } from 'bootstrap-vue'
 import VueGtag from 'vue-gtag'
 import { PointingSessionStore } from '@/pointing/PointingSessionStore'
 import { AppStore } from '@/app/AppStore'
@@ -11,7 +11,8 @@ import { AppStore } from '@/app/AppStore'
 Vue.config.productionTip = false
 Vue.use(Vuex)
 Vue.use(VueRouter)
-Vue.use(Bootstrap)
+Vue.use(BootstrapVue)
+Vue.use(BootstrapVueIcons)
 
 interface RootState {
 }

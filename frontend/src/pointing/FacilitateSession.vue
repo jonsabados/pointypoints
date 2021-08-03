@@ -3,7 +3,7 @@
     <h1>Facilitating Session</h1>
     <div v-if="isSessionReady">
       <div v-if="teamEmpty">
-        <p>No team members have joined the session. They may do so by going to the following URL: <strong>{{ userURL }}</strong></p>
+        <p>No team members have joined the session. They may do so by going to the following URL: <strong>{{ userURL }}</strong> <b-icon-clipboard v-on:click="copyUserURLToClipboard" class="clickable"/></p>
       </div>
       <div v-else>
         <h4>Active Team Members</h4>
@@ -134,6 +134,10 @@ export default class Session extends Vue {
     this.$store.commit(PointingSessionStore.MUTATION_SET_FACILITATING, true)
   }
 
+  copyUserURLToClipboard() {
+    navigator.clipboard.writeText(this.userURL)
+  }
+
   async showVotes() {
     if (!this.currentSession) {
       throw Error('attempt to show votes without session')
@@ -187,5 +191,7 @@ export default class Session extends Vue {
 </script>
 
 <style lang="scss">
-
+.clickable {
+  cursor: grab;
+}
 </style>

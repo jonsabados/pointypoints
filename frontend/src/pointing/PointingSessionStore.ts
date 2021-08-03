@@ -18,8 +18,6 @@ export interface PointingSessionState {
   connectionId: string | null
   sessionId: string | null
   currentSession: PointingSession | null
-  name: string | null
-  handle: string | null
 }
 
 function sendMessage(socket: WebSocket, message: any) {
@@ -58,10 +56,6 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
   sessionId: string | null = null
 
   currentSession: PointingSession | null = null
-
-  name: string | null = null
-
-  handle: string | null = null
 
   socket: WebSocket = new WebSocket(`${process.env['VUE_APP_POINTING_SOCKET_URL']}/`)
 
