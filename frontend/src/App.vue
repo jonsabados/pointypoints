@@ -7,6 +7,15 @@
     <b-modal v-model="hasRemoteError" role="alert" ok-only id="remoteErrorDialog" title="An error has occurred">
       <p id="remoteErrorMessage">{{ currentError }}</p>
     </b-modal>
+    <footer class="footer bg-light fixed-bottom" id="footer">
+      <nav role="navigation" class="navbar navbar-expand-lg navbar-light bg-light justify-content-sm-center" id="footerNav">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <router-link :to="{name: 'privacy'}" class="nav-link">Privacy Policy</router-link>
+          </li>
+        </ul>
+      </nav>
+    </footer>
   </div>
 </template>
 
