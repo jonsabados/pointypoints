@@ -65,7 +65,7 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 			return api.NewPermissionDeniedResponse(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
 
-		return api.NewSuccessResponse(ctx, corsHeaders(ctx, request.Headers), "session joined"), nil
+		return api.NewSuccessResponse(ctx, corsHeaders(ctx, request.Headers), session.ToParticipantView(*sess, joinRequest.ConnectionID)), nil
 	}
 }
 

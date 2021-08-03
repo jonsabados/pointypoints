@@ -49,10 +49,9 @@ type StartRequest struct {
 	ConnectionID      string `json:"connectionId"`
 }
 
-type LoadFacilitatorSessionRequest struct {
-	SessionID             string `json:"sessionId"`
-	FacilitatorSessionKey string `json:"facilitatorSessionKey"`
-	MarkActive            bool   `json:"markActive"`
+type SetFacilitatorSessionRequest struct {
+	MarkActive   bool   `json:"markActive"`
+	ConnectionID string `json:"connectionId"`
 }
 
 type WatchSessionRequest struct {

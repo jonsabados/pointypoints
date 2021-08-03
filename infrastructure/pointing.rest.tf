@@ -42,6 +42,7 @@ resource "aws_api_gateway_deployment" "rest_api" {
       module.cors_endpoint.change_keys,
       module.watchSession_lambda.change_keys,
       module.joinSession_lambda.change_keys,
+      module.setFacilitatorSession_lambda.change_keys,
       module.vote_lambda.change_keys,
       module.updateSession_lambda.change_keys,
       module.newSession_lambda.change_keys,

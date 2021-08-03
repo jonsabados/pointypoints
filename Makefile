@@ -63,11 +63,11 @@ dist/disconnect: dist/ $(shell find . -iname "*.go")
 dist/disconnectLambda.zip: dist/disconnect
 	cd dist && zip disconnectLambda.zip disconnect
 
-dist/loadFacilitatorSession: dist/ $(shell find . -iname "*.go")
-	GOOS=linux go build -o dist/loadFacilitatorSession github.com/jonsabados/pointypoints/session/loadfacilitatorsession
+dist/setFacilitatorSession: dist/ $(shell find . -iname "*.go")
+	GOOS=linux go build -o dist/setFacilitatorSession github.com/jonsabados/pointypoints/session/setfacilitatorsession
 
-dist/loadFacilitatorSessionLambda.zip: dist/loadFacilitatorSession
-	cd dist && zip loadFacilitatorSessionLambda.zip loadFacilitatorSession
+dist/setFacilitatorSessionLambda.zip: dist/setFacilitatorSession
+	cd dist && zip setFacilitatorSessionLambda.zip setFacilitatorSession
 
 dist/watchSession: dist/ $(shell find . -iname "*.go")
 	GOOS=linux go build -o dist/watchSession github.com/jonsabados/pointypoints/session/watchsession
@@ -112,6 +112,6 @@ dist/pingLambda.zip: dist/ping
 	cd dist && zip pingLambda.zip ping
 
 build: frontend/dist/index.html dist/corsLambda.zip dist/newSessionLambda.zip dist/connectLambda.zip \
-	dist/disconnectLambda.zip dist/loadFacilitatorSessionLambda.zip dist/watchSessionLambda.zip \
+	dist/disconnectLambda.zip dist/setFacilitatorSessionLambda.zip dist/watchSessionLambda.zip \
 	dist/joinSessionLambda.zip dist/voteLambda.zip dist/updateSessionLambda.zip dist/clearVotesLambda.zip \
 	dist/pingLambda.zip

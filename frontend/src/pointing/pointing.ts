@@ -18,20 +18,35 @@ export async function vote(session: string, userID: string, vote: string) {
   }
 }
 
-export async function joinSession(session: string, userID: string, user: User) {
+export async function facilitateSession(session: string, connectionId: string, facilitatorKey: string): Promise<PointingSession> {
+  const url = `${apiBase()}/session/${session}/facilitator`
+  const res = await axios.put(url, { connectionId }, {
+    headers: {
+      Authorization: facilitatorKey
+    }
+  })
+  if (res.status !== 200) {
+    throw new Error(`unexpected response code ${res.status}`)
+  }
+  return res.data.result
+}
+
+export async function joinSession(session: string, userID: string, user: User): Promise<PointingSession> {
   const url = `${apiBase()}/session/${session}/user/${userID}`
   const res = await axios.put(url, user, {})
   if (res.status !== 200) {
     throw new Error(`unexpected response code ${res.status}`)
   }
+  return res.data.result
 }
 
-export async function watchSession(session: string, connectionId: string) {
+export async function watchSession(session: string, connectionId: string): Promise<PointingSession> {
   const url = `${apiBase()}/session/${session}/watcher`
   const res = await axios.post(url, { connectionId }, {})
   if (res.status !== 200) {
     throw new Error(`unexpected response code ${res.status}`)
   }
+  return res.data.result
 }
 
 export async function updateSession(session: string, facilitatorKey: string, votesShown: boolean, facilitatorPoints: boolean) {

@@ -72,7 +72,6 @@ function convertFacilitatorSession(view: any): PointingSession {
 export class PointingSessionStore extends VuexModule<PointingSessionState> {
   static ACTION_INITIALIZE = 'initialize'
   static ACTION_END_SESSION = 'endSession'
-  static ACTION_LOAD_FACILITATOR_SESSION = 'loadFacilitatorSession'
   static ACTION_SET_FACILITATOR_SESSION = 'setFacilitatorSession'
 
   static MUTATION_SET_ACTIVE_SESSION = 'setActiveSession'
@@ -158,9 +157,7 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
         case FACILITATOR_SESSION_LOADED: {
           const session = convertFacilitatorSession(eventData.body.session)
           this.context.commit(PointingSessionStore.MUTATION_SESSION_ADDED, session)
-          if (eventData.body.markActive) {
-            this.context.commit(PointingSessionStore.MUTATION_SET_ACTIVE_SESSION, session)
-          }
+          this.context.commit(PointingSessionStore.MUTATION_SET_ACTIVE_SESSION, session)
           break
         }
         case SESSION_LOADED: {
@@ -188,17 +185,6 @@ export class PointingSessionStore extends VuexModule<PointingSessionState> {
           console.log(eventData)
       }
     }
-  }
-
-  @Action
-  loadFacilitatorSession(request: LoadFacilitatorSessionRequest) {
-    if (this.knownSessions.find((s) => {
-      return s.sessionId === request.sessionId
-    })) {
-      return
-    }
-    request.action = 'loadFacilitatorSession'
-    sendMessage(this.socket, request)
   }
 
   @Action

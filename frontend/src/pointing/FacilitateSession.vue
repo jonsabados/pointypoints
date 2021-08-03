@@ -65,7 +65,7 @@ import { PointingSession, PointingSessionStore } from '@/pointing/PointingSessio
 import Loading from '@/app/Loading.vue'
 import { User } from '@/user/user'
 import Pointing from '@/pointing/Pointing.vue'
-import { updateSession, clearVotes as makeClearVotesAPICall } from '@/pointing/pointing'
+import { updateSession, clearVotes as makeClearVotesAPICall, facilitateSession } from '@/pointing/pointing'
 import { AppStore } from '@/app/AppStore'
 
 @Component({
@@ -74,6 +74,10 @@ import { AppStore } from '@/app/AppStore'
 export default class Session extends Vue {
   votesShownClicked = false
   clearVotesClicked = false
+
+  get hasConnectionId(): boolean {
+    return !!this.$store.state.pointingSession.connectionId
+  }
 
   get userId(): string {
     return this.currentSession ? this.currentSession.facilitator.userId as string : ''
@@ -159,11 +163,23 @@ export default class Session extends Vue {
   }
 
   @Watch('$route')
-  routeParamsChanged() {
+  async routeParamsChanged() {
+    if (!this.hasConnectionId) {
+      // we need our connection id
+      return
+    }
     const sessionId = this.$route.params.sessionId
     const facilitatorSessionKey = this.$route.params.facilitatorSessionKey
-    const markActive = true
-    this.$store.dispatch(PointingSessionStore.ACTION_LOAD_FACILITATOR_SESSION, { sessionId, facilitatorSessionKey, markActive })
+    try {
+      await facilitateSession(sessionId, this.$store.state.pointingSession.connectionId as string, facilitatorSessionKey)
+    } catch (e) {
+      await this.$store.dispatch(AppStore.ACTION_REGISTER_REMOTE_ERROR, 'Error facilitating session')
+    }
+  }
+
+  @Watch('hasConnectionId')
+  watchConnectionId() {
+    this.routeParamsChanged()
   }
 }
 </script>

@@ -53,7 +53,7 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error dispatching message")
 		}
 		// technically this should be a created response... but meh, this will work for now
-		return api.NewSuccessResponse(ctx, corsHeaders(ctx, request.Headers), ""), nil
+		return api.NewSuccessResponse(ctx, corsHeaders(ctx, request.Headers), session.ToParticipantView(*sess, w.ConnectionID)), nil
 	}
 }
 

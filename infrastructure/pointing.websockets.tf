@@ -34,7 +34,6 @@ resource "aws_apigatewayv2_deployment" "websockets_pointing" {
     redeployment = sha1(jsonencode(concat(
       module.connect_lambda.change_keys,
       module.disconnect_lambda.change_keys,
-      module.loadFacilitatorSession_lambda.change_keys,
       module.ping_lambda.change_keys,
     )))
   }
