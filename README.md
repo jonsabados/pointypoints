@@ -15,9 +15,3 @@ The UI is a Vue.js javascript application and may be run locally by executing `n
 ## Executing tests
 
 First have docker installed as it is used to run a local dynamo emulator. Then execute `make test` which will run unit tests for both the go code and frontend code.
-
-## Outstanding issues
-pointypoints was put together in a hurry as part of a time boxed learning exercise aimed mainly at playing with websockets + API gateway. As such it has some rough edges which should probably be addressed at some point. These include:
-* Overuse of websockets. All communication with the backend happens via websockets, which actually makes life harder than it needs to be when it comes to dealing with requests that failed and whatnot - if things like writing to the datastore fail there is a good chance the user will face a spinner that never goes away - this is due to websockets not really being a request/response thing and rather just a way of sending messages back and forth without ties between messages. It would be better if all actions happend via more standard rest calls, and then websockets were only used to broadcast changes in state.
-* Test coverage is lacking. Like if it were something done on the job I would be deeply ashamed level of lacking.
-* ???
