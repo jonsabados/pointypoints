@@ -1,18 +1,19 @@
 <template>
   <main class="container-fluid" role="main">
     <h1>New Pointing Session</h1>
+    <h3 v-if="!isSignedIn">Tip: Log in to save time and avoid having to enter your name!</h3>
     <div v-if="creatingSession || !hasConnectionId">
       <loading id="searchResultLoadingIndicator" />
     </div>
     <div v-else>
       <p>Once the session has been started you will be provided a link which participants may use to join.</p>
       <form @submit.prevent="startSession">
-        <div class="form-group">
+        <div v-if="!isSignedIn" class="form-group">
           <label for="facilitatorName">Facilitator Name:</label>
           <input type="text" class="form-control" id="facilitatorName" aria-describedby="facilitatorHelp" placeholder="Jane Doe" v-model="facilitatorName" />
           <small id="facilitatorHelp" class="form-text text-muted">Name of the individual running the session. Required.</small>
         </div>
-        <div class="form-group">
+        <div v-if="!isSignedIn" class="form-group">
           <label for="facilitatorHandle">Facilitator Handle:</label>
           <input type="text" class="form-control" id="facilitatorHandle" aria-describedby="facilitatorHandleHelp" placeholder="PointMaster2020" v-model="facilitatorHandle" />
           <small id="facilitatorHandleHelp" class="form-text text-muted">If specified this will be the display name of the facilitator, otherwise the value for Facilitator Name will be displayed.</small>
@@ -56,12 +57,16 @@ export default class NewSession extends Vue {
 
   creatingSession: boolean = false
 
+  get isSignedIn(): boolean {
+    return this.$store.state.profile.signedIn
+  }
+
   get sessionActive(): boolean {
     return !!this.$store.state.pointingSession.currentSession
   }
 
   get disableSubmit(): boolean {
-    return this.facilitatorName === ''
+    return !this.isSignedIn && this.facilitatorName === ''
   }
 
   get hasConnectionId(): boolean {
@@ -74,8 +79,8 @@ export default class NewSession extends Vue {
 
   async startSession() {
     this.creatingSession = true
-    const facilitatorName = this.facilitatorName
-    const facilitatorHandle = this.facilitatorHandle
+    const facilitatorName = this.isSignedIn ? this.$store.state.profile.remoteProfile.name : this.facilitatorName
+    const facilitatorHandle = this.isSignedIn ? this.$store.state.profile.remoteProfile.handle : this.facilitatorHandle
     const facilitatorPoints = this.facilitatorPoints === 'true'
     const request = {
       connectionId: this.$store.state.pointingSession.connectionId,

@@ -12,7 +12,7 @@
           {{ currentSession.participants.length }} participants will be shown.
         </p>
       </div>
-      <div v-else>
+      <div v-else-if="!isSignedIn">
         <h4>This session currently has {{ currentSession.participants.length }} participants.</h4>
         <p>
           The session facilitator is <user-display-name :user="currentSession.facilitator"/>,
@@ -25,6 +25,7 @@
         </p>
         <div v-if="needDetails">
           <div v-if="hasConnectionId">
+            <h5>Tip: Log in to save time and avoid having to enter your name!</h5>
             <p>You must enter some details before you can join the session:</p>
             <form @submit.prevent="joinSession">
               <div class="form-group">
@@ -55,6 +56,9 @@
           <loading/>
         </div>
       </div>
+      <div v-else>
+        <loading/>
+      </div>
     </div>
     <div v-else>
       <loading/>
@@ -81,6 +85,10 @@ export default class Session extends Vue {
   name: string = ''
   handle: string = ''
   detailsSet: boolean = false
+
+  get isSignedIn(): boolean {
+    return this.$store.state.profile.signedIn
+  }
 
   get needDetails(): boolean {
     return !this.detailsSet
@@ -113,8 +121,8 @@ export default class Session extends Vue {
     try {
       await joinSession(this.$route.params.sessionId, this.userId, {
         connectionId: this.$store.state.pointingSession.connectionId as string,
-        name: this.name,
-        handle: this.handle
+        name: this.isSignedIn ? this.$store.state.profile.remoteProfile.name : this.name,
+        handle: this.isSignedIn ? this.$store.state.profile.remoteProfile.handle : this.handle
       })
     } catch (e) {
       await this.$store.dispatch(AppStore.ACTION_REGISTER_REMOTE_ERROR, e)
@@ -126,6 +134,11 @@ export default class Session extends Vue {
     this.routeParamsChanged()
   }
 
+  @Watch('$store.state.profile.remoteProfile')
+  profileLoaded() {
+    this.routeParamsChanged()
+  }
+
   @Watch('$route')
   async routeParamsChanged() {
     if (!this.hasConnectionId) {
@@ -134,10 +147,14 @@ export default class Session extends Vue {
     }
     const sessionId = this.$route.params.sessionId
     await this.$store.commit(PointingSessionStore.MUTATION_SET_SESSION_ID, sessionId)
-    try {
-      await watchSession(sessionId, this.$store.state.pointingSession.connectionId as string)
-    } catch (e) {
-      await this.$store.dispatch(AppStore.ACTION_REGISTER_REMOTE_ERROR, e)
+    if (!this.isSignedIn) {
+      try {
+        await watchSession(sessionId, this.$store.state.pointingSession.connectionId as string)
+      } catch (e) {
+        await this.$store.dispatch(AppStore.ACTION_REGISTER_REMOTE_ERROR, e)
+      }
+    } else if (this.$store.state.profile.remoteProfile) {
+      await this.joinSession()
     }
   }
 
