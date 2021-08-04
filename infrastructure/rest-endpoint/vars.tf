@@ -33,3 +33,8 @@ variable "http_method" {
 variable "request_parameters" {
   type = map(string)
 }
+
+variable "authorizer_id" {
+  type = string
+  default = null
+}

@@ -62,10 +62,12 @@ resource "aws_cloudwatch_log_group" "lambda_logs" {
 }
 
 resource "aws_api_gateway_method" "method" {
-  authorization = "NONE"
   http_method   = var.http_method
   resource_id   = var.resource_id
   rest_api_id   = var.api_id
+
+  authorization = var.authorizer_id == null ? "NONE" : "CUSTOM"
+  authorizer_id = var.authorizer_id
 
   request_parameters = var.request_parameters
 }

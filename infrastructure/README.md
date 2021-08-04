@@ -7,6 +7,7 @@ This terraform can be used to create the required infrastructure for pointypoint
 * pointypoints.domainname - this should be the domain name registered (for example pointypoints.com)
 * pointypoints.uibucket - this should be a name of an S3 bucket to host the UI out of (behind cloudfront of course). This bucket should not exist and will be created, it is paramiterized since bucket names must be globally unique.
 * pointypoints.google.verification - this should be the site verification txt record for google domain ownership verification. Any value can be placed in this if that is not a concern (note, it will show up in the txt record for the domain)
+* pointypoints.google.clientId - this should be a client id for google web sign in
 
 Next you will need to create a bucket to store the terraform state. There are no constraints on the bucket name, but the bucket should be private (it will function if its public but exposing it to the world is a terrible idea).
 
