@@ -13,10 +13,10 @@
     <p>
       In the event that you log into the site information about your account will be retained. This information will
       include your email address and name, and any additional information you enter in your profile. This information
-      will be displayed to other users during pointing sessions, and will be accessible to site operators. This
-      information will not be sold, shared or distributed in any other manner. In the event you wish to have this
-      information removed you may contact <a href="mailto:support@sabadoscodes.com">support@sabadoscodes.com</a>
-      to request removal.
+      will be displayed to other users during pointing sessions, will be accessible to site operators and may be used
+      to contact you according the options you have selected in your profile. This information will not be sold, shared
+      or distributed in any other manner. In the event you wish to have this information removed you may contact
+      <a href="mailto:support@sabadoscodes.com">support@sabadoscodes.com</a> to request removal.
     </p>
     <h2>Statistics</h2>
     <p>
