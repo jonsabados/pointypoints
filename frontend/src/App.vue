@@ -24,6 +24,7 @@ import { Vue, Component } from 'vue-property-decorator'
 import MainNav from './navigation/MainNav.vue'
 import { AppStore } from '@/app/AppStore'
 import { PointingSessionStore } from '@/pointing/PointingSessionStore'
+import { ProfileStore } from '@/profile/ProfileStore'
 
 @Component({
   components: {
@@ -32,7 +33,7 @@ import { PointingSessionStore } from '@/pointing/PointingSessionStore'
 })
 export default class App extends Vue {
   created() {
-    this.$store.dispatch(PointingSessionStore.ACTION_INITIALIZE)
+    this.$store.dispatch('initialize')
   }
 
   get currentError(): null | string {

@@ -40,7 +40,6 @@ function sendMessage(socket: WebSocket, message: any) {
 
 @Module
 export class PointingSessionStore extends VuexModule<PointingSessionState> {
-  static ACTION_INITIALIZE = 'initialize'
   static ACTION_END_SESSION = 'endSession'
 
   static MUTATION_SET_FACILITATING = 'setFacilitating'

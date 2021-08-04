@@ -7,6 +7,9 @@ import { BootstrapVue, BootstrapVueIcons } from 'bootstrap-vue'
 import VueGtag from 'vue-gtag'
 import { PointingSessionStore } from '@/pointing/PointingSessionStore'
 import { AppStore } from '@/app/AppStore'
+import { ProfileStore } from '@/profile/ProfileStore'
+// @ts-ignore
+import { LoaderPlugin } from 'vue-google-login'
 
 Vue.config.productionTip = false
 Vue.use(Vuex)
@@ -26,11 +29,16 @@ Vue.use(VueGtag, {
   pageTrackerScreenviewEnabled: true
 }, router)
 
+Vue.use(LoaderPlugin, {
+  client_id: process.env.VUE_APP_GOOGLE_OAUTH_CLIENT_ID
+})
+
 const store = new Vuex.Store<RootState>({
   state: {},
   modules: {
     app: AppStore,
-    pointingSession: PointingSessionStore
+    pointingSession: PointingSessionStore,
+    profile: ProfileStore
   }
 })
 
