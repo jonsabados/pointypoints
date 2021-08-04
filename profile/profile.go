@@ -25,8 +25,8 @@ type Profile struct {
 
 type UserView struct {
 	Email  string  `json:"email"`
-	Name   string  `json:"Name"`
-	Handle *string `json:"Handle"`
+	Name   string  `json:"name"`
+	Handle *string `json:"handle"`
 }
 
 type Fetcher func(ctx context.Context, userID string) (*Profile, error)

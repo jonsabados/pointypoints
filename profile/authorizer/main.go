@@ -48,6 +48,17 @@ func (a *authCallback) AuthPass(p goauth.Principal) error {
 		if err != nil {
 			return errors.Wrap(err, "error writing profile")
 		}
+	} else if saved.Name != p.Name || saved.Email != p.Email {
+		// unsure if you can update name or email with google accounts... but lets support it just in case.
+		err := a.writeProfile(a.ctx, profile.Profile{
+			UserID: p.UserID,
+			Email:  p.Email,
+			Name:   p.Name,
+			Handle: saved.Handle,
+		})
+		if err != nil {
+			return errors.Wrap(err, "error writing profile")
+		}
 	}
 	return nil
 }

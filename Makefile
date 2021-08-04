@@ -123,7 +123,13 @@ dist/profileRead: dist/ $(shell find . -iname "*.go")
 dist/profileReadLambda.zip: dist/profileRead
 	cd dist && zip profileReadLambda.zip profileRead
 
+dist/profileWrite: dist/ $(shell find . -iname "*.go")
+	GOOS=linux go build -o dist/profileWrite github.com/jonsabados/pointypoints/profile/write
+
+dist/profileWriteLambda.zip: dist/profileWrite
+	cd dist && zip profileWriteLambda.zip profileWrite
+
 build: frontend/dist/index.html dist/corsLambda.zip dist/newSessionLambda.zip dist/connectLambda.zip \
 	dist/disconnectLambda.zip dist/setFacilitatorSessionLambda.zip dist/watchSessionLambda.zip \
 	dist/joinSessionLambda.zip dist/voteLambda.zip dist/updateSessionLambda.zip dist/clearVotesLambda.zip \
-	dist/pingLambda.zip dist/authorizerLambda.zip dist/profileReadLambda.zip
+	dist/pingLambda.zip dist/authorizerLambda.zip dist/profileReadLambda.zip dist/profileWriteLambda.zip

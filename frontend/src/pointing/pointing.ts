@@ -15,7 +15,7 @@ export interface Profile {
   handle: string
 }
 
-export async function getProfile(authHeader: string) {
+export async function getProfile(authHeader: string):Promise<Profile> {
   const url = `${apiBase()}/profile`
   const res = await axios.get(url, {
     headers: {
@@ -26,6 +26,18 @@ export async function getProfile(authHeader: string) {
     throw new Error(`unexpected response code ${res.status}`)
   }
   return res.data.result
+}
+
+export async function updateProfile(authHeader: string, profile: Profile) {
+  const url = `${apiBase()}/profile`
+  const res = await axios.put(url, profile, {
+    headers: {
+      Authorization: authHeader
+    }
+  })
+  if (res.status !== 204) {
+    throw new Error(`unexpected response code ${res.status}`)
+  }
 }
 
 export async function vote(session: string, userID: string, vote: string) {
