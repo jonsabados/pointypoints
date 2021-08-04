@@ -9,6 +9,25 @@ export interface StartSessionRequest {
   facilitatorPoints: boolean
 }
 
+export interface Profile {
+  email: string
+  name: string
+  handle: string
+}
+
+export async function getProfile(authHeader: string) {
+  const url = `${apiBase()}/profile`
+  const res = await axios.get(url, {
+    headers: {
+      Authorization: authHeader
+    }
+  })
+  if (res.status !== 200) {
+    throw new Error(`unexpected response code ${res.status}`)
+  }
+  return res.data.result
+}
+
 export async function vote(session: string, userID: string, vote: string) {
   const url = `${apiBase()}/session/${session}/user/${userID}/vote`
   const body = { vote }

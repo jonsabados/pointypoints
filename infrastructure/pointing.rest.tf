@@ -46,7 +46,8 @@ resource "aws_api_gateway_deployment" "rest_api" {
       module.vote_lambda.change_keys,
       module.updateSession_lambda.change_keys,
       module.newSession_lambda.change_keys,
-      module.clearVotes_lambda.change_keys
+      module.clearVotes_lambda.change_keys,
+      module.profileRead_lambda.change_keys,
     )))
   }
 

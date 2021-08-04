@@ -28,6 +28,18 @@ data "aws_iam_policy_document" "auth_lambda_policy" {
     ]
     resources = ["*"]
   }
+
+  statement {
+    sid    = "AllowProfileAccess"
+    effect = "Allow"
+    actions = [
+      "dynamodb:GetItem",
+      "dynamodb:PutItem"
+    ]
+    resources = [
+      "arn:aws:dynamodb:*:*:table/${aws_dynamodb_table.profile_store.name}"
+    ]
+  }
 }
 
 resource "aws_iam_role" "auth_lambda_role" {
@@ -42,6 +54,11 @@ resource "aws_iam_role" "auth_lambda_role" {
 resource "aws_iam_role_policy" "auth_lambda_role_policy" {
   role   = aws_iam_role.auth_lambda_role.name
   policy = data.aws_iam_policy_document.auth_lambda_policy.json
+}
+
+resource "aws_cloudwatch_log_group" "auth_lambda_logs" {
+  name              = "/aws/lambda/${aws_lambda_function.auth_lambda.function_name}"
+  retention_in_days = 7
 }
 
 resource "aws_lambda_function" "auth_lambda" {
@@ -60,9 +77,10 @@ resource "aws_lambda_function" "auth_lambda" {
     variables = {
       "LOG_LEVEL" : "debug"
       "GOOGLE_CLIENT_ID" : data.aws_ssm_parameter.google_client_id.value,
+      "PROFILE_TABLE" : aws_dynamodb_table.profile_store.name,
       "ACCOUNT_ID" : data.aws_caller_identity.current.account_id,
       "API_ID" : aws_api_gateway_rest_api.rest_pointing.id,
-      "STAGE" : aws_api_gateway_stage.rest_pointing_main.stage_name
+      "STAGE" : "${local.workspace_prefix}rest-main" // we can't reference the stage since it creates a circular dependency...
     }
   }
 

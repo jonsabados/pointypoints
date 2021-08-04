@@ -38,3 +38,18 @@ resource "aws_dynamodb_table" "session_store" {
     Workspace = terraform.workspace
   }
 }
+
+resource "aws_dynamodb_table" "profile_store" {
+  hash_key     = "UserID"
+  name         = "${local.workspace_prefix}Profile"
+  billing_mode = "PAY_PER_REQUEST"
+
+  attribute {
+    name = "UserID"
+    type = "S"
+  }
+
+  tags = {
+    Workspace = terraform.workspace
+  }
+}

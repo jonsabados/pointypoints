@@ -117,7 +117,13 @@ dist/authorizer: dist/ $(shell find . -iname "*.go")
 dist/authorizerLambda.zip: dist/authorizer
 	cd dist && zip authorizerLambda.zip authorizer
 
+dist/profileRead: dist/ $(shell find . -iname "*.go")
+	GOOS=linux go build -o dist/profileRead github.com/jonsabados/pointypoints/profile/read
+
+dist/profileReadLambda.zip: dist/profileRead
+	cd dist && zip profileReadLambda.zip profileRead
+
 build: frontend/dist/index.html dist/corsLambda.zip dist/newSessionLambda.zip dist/connectLambda.zip \
 	dist/disconnectLambda.zip dist/setFacilitatorSessionLambda.zip dist/watchSessionLambda.zip \
 	dist/joinSessionLambda.zip dist/voteLambda.zip dist/updateSessionLambda.zip dist/clearVotesLambda.zip \
-	dist/pingLambda.zip dist/authorizerLambda.zip
+	dist/pingLambda.zip dist/authorizerLambda.zip dist/profileReadLambda.zip
