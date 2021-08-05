@@ -52,6 +52,9 @@ type StartRequest struct {
 type SetFacilitatorSessionRequest struct {
 	MarkActive   bool   `json:"markActive"`
 	ConnectionID string `json:"connectionId"`
+	UserID       string `json:"userId"`
+	Name         string `json:"name,omitempty"`
+	Handle       string `json:"handle,omitempty"`
 }
 
 type WatchSessionRequest struct {
@@ -142,6 +145,10 @@ func NewStarter(dynamo DynamoClient, tableName string, sessionExpiration time.Du
 				"VotesShown":            {BOOL: aws.Bool(false)},
 				"FacilitatorSessionKey": {S: aws.String(facilitatorSessionKey)},
 				"FacilitatorPoints":     {BOOL: aws.Bool(toStart.FacilitatorPoints)},
+				// duplicating facilitator info so it can be resurrected in the event of a reload without having to have the client keep track
+				"FacilitatorName":       {S: aws.String(toStart.Facilitator.Name)},
+				"FacilitatorHandle":     {S: aws.String(toStart.Facilitator.Handle)},
+				"FacilitatorUserID":     {S: aws.String(toStart.Facilitator.UserID)},
 				"Expiration":            expiration,
 			},
 		}
@@ -185,6 +192,10 @@ func NewSaver(dynamo DynamoClient, tableName string, notifyObservers ChangeNotif
 				"VotesShown":            {BOOL: aws.Bool(toSave.VotesShown)},
 				"FacilitatorSessionKey": {S: aws.String(toSave.FacilitatorSessionKey)},
 				"FacilitatorPoints":     {BOOL: aws.Bool(toSave.FacilitatorPoints)},
+				// duplicating facilitator info so it can be resurrected in the event of a reload without having to have the client keep track
+				"FacilitatorName":       {S: aws.String(toSave.Facilitator.Name)},
+				"FacilitatorHandle":     {S: aws.String(toSave.Facilitator.Handle)},
+				"FacilitatorUserID":     {S: aws.String(toSave.Facilitator.UserID)},
 				"Expiration":            {N: aws.String(strconv.FormatInt(time.Now().Add(sessionExpiration).Unix(), 10))},
 			},
 		}
@@ -285,6 +296,9 @@ func NewLoader(dynamo DynamoClient, tableName string) Loader {
 				ret.VotesShown = *item["VotesShown"].BOOL
 				ret.FacilitatorSessionKey = *item["FacilitatorSessionKey"].S
 				ret.FacilitatorPoints = *item["FacilitatorPoints"].BOOL
+				ret.Facilitator.Name = *item["FacilitatorName"].S
+				ret.Facilitator.Handle = *item["FacilitatorHandle"].S
+				ret.Facilitator.UserID = *item["FacilitatorUserID"].S
 			} else if rangeKey == facilitatorRecordRangeKeyValue {
 				ret.Facilitator = readUser(item)
 			} else if strings.HasPrefix(rangeKey, participantRecordRangeKeyPrefix) {
