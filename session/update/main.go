@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 	"strings"
 
@@ -24,7 +23,7 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 		r := new(session.UpdateRequest)
 		err := json.Unmarshal([]byte(request.Body), r)
 		if err != nil {
-			zerolog.Ctx(ctx).Warn().Str("error", fmt.Sprintf("%+v", err)).Msg("error reading load request body")
+			zerolog.Ctx(ctx).Warn().Err(err).Msg("error reading load request body")
 			return api.NewInternalServerError(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
 
@@ -32,7 +31,7 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 
 		sess, err := loadSession(ctx, sessionID)
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error reading session")
+			zerolog.Ctx(ctx).Error().Err(err).Msg("error reading session")
 			return api.NewPermissionDeniedResponse(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
 		if sess == nil {
@@ -49,7 +48,7 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 
 		err = saveSession(ctx, *sess)
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error saving session")
+			zerolog.Ctx(ctx).Error().Err(err).Msg("error saving session")
 			return api.NewInternalServerError(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
 		return api.NewNoContentResponse(ctx, corsHeaders(ctx, request.Headers)), nil

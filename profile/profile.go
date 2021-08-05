@@ -14,6 +14,11 @@ const (
 	fieldEmail  = "Email"
 	fieldName   = "UserName" // Name is reserved
 	fieldHandle = "Handle"
+
+	fieldSessionStartCount = "SessionStartCount"
+	fieldSessionWatchCount = "SessionWatchCount"
+	fieldSessionJoinCount  = "SessionJoinCount"
+	fieldVoteCount         = "VoteCount"
 )
 
 type Profile struct {
@@ -83,4 +88,40 @@ func NewWriter(dynamo *dynamodb.DynamoDB, tableName string) Writer {
 		})
 		return errors.Wrap(err, "error writing profile")
 	}
+}
+
+type StatsUpdateFactory struct {
+	tableName string
+}
+
+func (s *StatsUpdateFactory) SessionIncrement(userID string) *dynamodb.Update {
+	return s.statsColumnIncrement(userID, fieldSessionStartCount)
+}
+
+func (s *StatsUpdateFactory) SessionWatchIncrement(userID string) *dynamodb.Update {
+	return s.statsColumnIncrement(userID, fieldSessionWatchCount)
+}
+
+func (s *StatsUpdateFactory) SessionJoinIncrement(userID string) *dynamodb.Update {
+	return s.statsColumnIncrement(userID, fieldSessionJoinCount)
+}
+
+func (s *StatsUpdateFactory) VoteIncrement(userID string) *dynamodb.Update {
+	return s.statsColumnIncrement(userID, fieldVoteCount)
+}
+
+
+func (s *StatsUpdateFactory) statsColumnIncrement(userID string, column string) *dynamodb.Update {
+	return &dynamodb.Update{
+		TableName: aws.String(s.tableName),
+		Key: map[string]*dynamodb.AttributeValue{
+			"UserID": {S: aws.String(userID)},
+		},
+		UpdateExpression: aws.String(fmt.Sprintf("ADD %s :inc", column)),
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{":inc": {N: aws.String("1")}},
+	}
+}
+
+func NewStatsUpdateFactory(profileTable string) *StatsUpdateFactory {
+	return &StatsUpdateFactory{profileTable}
 }

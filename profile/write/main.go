@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 	"strings"
 
@@ -31,7 +30,7 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 		input := profile.UserView{}
 		err = json.Unmarshal([]byte(request.Body), &input)
 		if err != nil {
-			zerolog.Ctx(ctx).Warn().Str("error", fmt.Sprintf("%+v", err)).Msg("error reading request body")
+			zerolog.Ctx(ctx).Warn().Err(err).Msg("error reading request body")
 			return api.NewInternalServerError(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
 
@@ -46,7 +45,7 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 			Handle: input.Handle,
 		})
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error writing profile")
+			zerolog.Ctx(ctx).Error().Err(err).Msg("error writing profile")
 			return api.NewInternalServerError(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
 
@@ -61,9 +60,8 @@ func main() {
 
 	sess := lambdautil.DefaultAWSConfig()
 
-	profileTable := os.Getenv("PROFILE_TABLE")
 	dynamo := lambdautil.NewDynamoClient(sess)
-	writeProfile := profile.NewWriter(dynamo, profileTable)
+	writeProfile := profile.NewWriter(dynamo, lambdautil.ProfileTable)
 
 	allowedDomains := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
 

@@ -8,10 +8,12 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/jonsabados/goauth"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 
 	"github.com/jonsabados/pointypoints/api"
+	"github.com/jonsabados/pointypoints/profile"
 )
 
 type ChangeNotifier func(ctx context.Context, updated CompleteSessionView) error
@@ -39,7 +41,7 @@ func NewChangeNotifier(dynamo DynamoClient, tableName string, dispatchMessage ap
 					Body: connectionView(updated, *socketID.S),
 				})
 				if err != nil {
-					zerolog.Ctx(ctx).Warn().Str("error", fmt.Sprintf("%+v", err)).Msg("error notifying observer")
+					zerolog.Ctx(ctx).Warn().Err(err).Msg("error notifying observer")
 				}
 			}
 		}
@@ -54,19 +56,30 @@ func connectionView(sess CompleteSessionView, connectionID string) interface{} {
 	return ToParticipantView(sess, connectionID)
 }
 
-type WatcherSaver func(ctx context.Context, sessionID string, socketID string) error
+type WatcherSaver func(ctx context.Context, initiator goauth.Principal, sessionID string, socketID string) error
 
-func NewWatcherSaver(dynamo DynamoClient, tableName string, sessionExpiration time.Duration) WatcherSaver {
-	return func(ctx context.Context, sessionID string, socketID string) error {
+func NewWatcherSaver(dynamo DynamoClient, tableName string, sessionExpiration time.Duration,  sf *profile.StatsUpdateFactory) WatcherSaver {
+	return func(ctx context.Context, initiator goauth.Principal, sessionID string, socketID string) error {
 		expiration := &dynamodb.AttributeValue{N: aws.String(strconv.FormatInt(time.Now().Add(sessionExpiration).Unix(), 10))}
 
-		_, err := dynamo.PutItemWithContext(ctx, &dynamodb.PutItemInput{
+		watchPut := &dynamodb.Put{
 			TableName: aws.String(tableName),
 			Item: map[string]*dynamodb.AttributeValue{
 				"SessionID":  {S: aws.String(sessionID)},
 				"RangeKey":   {S: aws.String(fmt.Sprintf("%s%s", watcherRecordRangeKeyPrefix, socketID))},
 				"SocketID":   {S: aws.String(socketID)},
 				"Expiration": expiration,
+			},
+		}
+
+		_, err := dynamo.TransactWriteItemsWithContext(ctx, &dynamodb.TransactWriteItemsInput{
+			TransactItems: []*dynamodb.TransactWriteItem{
+				{
+					Put: watchPut,
+				},
+				{
+					Update: sf.SessionWatchIncrement(initiator.UserID),
+				},
 			},
 		})
 

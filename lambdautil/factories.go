@@ -16,6 +16,7 @@ import (
 const SessionTimeout = time.Hour * 72
 
 var SessionTable = os.Getenv("SESSION_TABLE")
+var ProfileTable = os.Getenv("PROFILE_TABLE")
 var SessionSocketIndex = os.Getenv("SESSION_SOCKET_INDEX")
 
 func CoreStartup() {

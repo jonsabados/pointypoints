@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strings"
 
@@ -24,7 +23,7 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 		sessionID := request.PathParameters["session"]
 		sess, err := loadSession(ctx, request.PathParameters["session"])
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error reading session")
+			zerolog.Ctx(ctx).Error().Err(err).Msg("error reading session")
 			return api.NewPermissionDeniedResponse(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
 		if sess == nil {
@@ -45,7 +44,7 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 
 		err = saveSession(ctx, *sess)
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error saving session")
+			zerolog.Ctx(ctx).Error().Err(err).Msg("error saving session")
 			return api.NewInternalServerError(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
 		return api.NewNoContentResponse(ctx, corsHeaders(ctx, request.Headers)), nil

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -29,7 +28,7 @@ func NewHandler(prepareLogs logging.Preparer, dispatch api.MessageDispatcher) fu
 			},
 		})
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error dispatching message")
+			zerolog.Ctx(ctx).Error().Err(err).Msg("error dispatching message")
 		}
 		return events.APIGatewayProxyResponse{
 			StatusCode: http.StatusNoContent,

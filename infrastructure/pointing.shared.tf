@@ -44,6 +44,17 @@ data "aws_iam_policy_document" "session_modifying_lambda_policy" {
   }
 
   statement {
+    sid    = "AllowProfileStatsAccess"
+    effect = "Allow"
+    actions = [
+      "dynamodb:UpdateItem"
+    ]
+    resources = [
+      "arn:aws:dynamodb:*:*:table/${aws_dynamodb_table.profile_store.name}"
+    ]
+  }
+
+  statement {
     sid    = "AllowSessionSocketIndexQuery"
     effect = "Allow"
     actions = [
@@ -71,6 +82,7 @@ locals {
     REGION               = var.aws_region
     GATEWAY_ENDPOINT     = "https://${aws_apigatewayv2_api.websockets_pointing.id}.execute-api.${var.aws_region}.amazonaws.com/${local.workspace_prefix}pointing-main/"
     SESSION_TABLE        = aws_dynamodb_table.session_store.name
+    PROFILE_TABLE        = aws_dynamodb_table.profile_store.name
     SESSION_SOCKET_INDEX = local.session_socket_index_name
     LOG_LEVEL            = "info"
     ALLOWED_ORIGINS      = "https://${module.ui_cert.distinct_domain_names[0]},https://${module.ui_cert.distinct_domain_names[1]},http://localhost:8080"

@@ -50,7 +50,7 @@ func main() {
 
 	sess := lambdautil.DefaultAWSConfig()
 
-	profileTable := os.Getenv("PROFILE_TABLE")
+	profileTable := lambdautil.ProfileTable
 	dynamo := lambdautil.NewDynamoClient(sess)
 	fetchProfile := profile.NewFetcher(dynamo, profileTable)
 

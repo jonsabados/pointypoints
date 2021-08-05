@@ -11,8 +11,11 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/google/uuid"
+	"github.com/jonsabados/goauth"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
+
+	"github.com/jonsabados/pointypoints/profile"
 )
 
 type UserType int
@@ -128,17 +131,17 @@ func participantUserView(s CompleteSessionView, u User, connectionID string) Use
 	return ret
 }
 
-type Starter func(ctx context.Context, toStart StartRequest) (CompleteSessionView, error)
+type Starter func(ctx context.Context, initiator goauth.Principal, toStart StartRequest) (CompleteSessionView, error)
 
-func NewStarter(dynamo DynamoClient, tableName string, sessionExpiration time.Duration) Starter {
-	return func(ctx context.Context, toStart StartRequest) (CompleteSessionView, error) {
+func NewStarter(dynamo DynamoClient, sessionTableName string, sessionExpiration time.Duration, sf *profile.StatsUpdateFactory) Starter {
+	return func(ctx context.Context,  initiator goauth.Principal, toStart StartRequest) (CompleteSessionView, error) {
 		sessionID := uuid.New().String()
 		facilitatorSessionKey := uuid.New().String()
 
 		expiration := &dynamodb.AttributeValue{N: aws.String(strconv.FormatInt(time.Now().Add(sessionExpiration).Unix(), 10))}
 
 		sessionPut := &dynamodb.Put{
-			TableName: aws.String(tableName),
+			TableName: aws.String(sessionTableName),
 			Item: map[string]*dynamodb.AttributeValue{
 				"SessionID":             {S: aws.String(sessionID)},
 				"RangeKey":              {S: aws.String(sessionRecordRangeKeyValue)},
@@ -154,7 +157,7 @@ func NewStarter(dynamo DynamoClient, tableName string, sessionExpiration time.Du
 		}
 
 		facilitatorPut := &dynamodb.Put{
-			TableName: aws.String(tableName),
+			TableName: aws.String(sessionTableName),
 			Item:      convertUser(sessionID, Facilitator, toStart.Facilitator, expiration),
 		}
 
@@ -165,6 +168,9 @@ func NewStarter(dynamo DynamoClient, tableName string, sessionExpiration time.Du
 				},
 				{
 					Put: facilitatorPut,
+				},
+				{
+					Update: sf.SessionIncrement(initiator.UserID),
 				},
 			},
 		})
@@ -233,27 +239,35 @@ func NewSaver(dynamo DynamoClient, tableName string, notifyObservers ChangeNotif
 	}
 }
 
-type UserSaver func(ctx context.Context, sessionID string, user User, userType UserType) error
+// ew ew ew ew ew re. isVote. This is actually a sign of poor design, lambda funcs are doing way to much logic, we should
+// nix the functional approach and make more proper service thing. This will work for now...
+type UserSaver func(ctx context.Context, initiator goauth.Principal, sessionID string, user User, userType UserType, isVote bool) error
 
-func NewUserSaver(dynamo DynamoClient, tableName string, sessionExpiration time.Duration) UserSaver {
-	return func(ctx context.Context, sessionID string, user User, userType UserType) error {
+func NewUserSaver(dynamo DynamoClient, tableName string, sessionExpiration time.Duration, sf *profile.StatsUpdateFactory) UserSaver {
+	return func(ctx context.Context, initiator goauth.Principal, sessionID string, user User, userType UserType, isVote bool) error {
 		expiration := &dynamodb.AttributeValue{N: aws.String(strconv.FormatInt(time.Now().Add(sessionExpiration).Unix(), 10))}
 
-		// swap watcher for user
-		_, err := dynamo.DeleteItemWithContext(ctx, &dynamodb.DeleteItemInput{
-			TableName: aws.String(tableName),
-			Key: map[string]*dynamodb.AttributeValue{
-				"SessionID": {S: aws.String(sessionID)},
-				"RangeKey":  {S: aws.String(fmt.Sprintf("%s%s", watcherRecordRangeKeyPrefix, user.SocketID))},
+		actions := []*dynamodb.TransactWriteItem{
+			{
+				Put: &dynamodb.Put{
+					TableName: aws.String(tableName),
+					Item:      convertUser(sessionID, userType, user, expiration),
+				},
 			},
-		})
-		if err != nil {
-			return errors.WithStack(err)
 		}
 
-		_, err = dynamo.PutItemWithContext(ctx, &dynamodb.PutItemInput{
-			TableName: aws.String(tableName),
-			Item:      convertUser(sessionID, userType, user, expiration),
+		if isVote {
+			actions = append(actions, &dynamodb.TransactWriteItem{
+				Update: sf.VoteIncrement(initiator.UserID),
+			})
+		} else if userType == Participant {
+			actions = append(actions, &dynamodb.TransactWriteItem{
+				Update: sf.SessionJoinIncrement(initiator.UserID),
+			})
+		}
+
+		_, err := dynamo.TransactWriteItemsWithContext(ctx, &dynamodb.TransactWriteItemsInput{
+			TransactItems: actions,
 		})
 
 		return errors.WithStack(err)

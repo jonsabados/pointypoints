@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -20,7 +19,7 @@ func NewHandler(prepareLogs logging.Preparer, disconnect session.Disconnector) f
 		zerolog.Ctx(ctx).Info().Interface("request", request).Msg("disconnect called")
 		err := disconnect(ctx, request.RequestContext.ConnectionID)
 		if err != nil {
-			zerolog.Ctx(ctx).Error().Str("error", fmt.Sprintf("%+v", err)).Msg("error disconnecting user")
+			zerolog.Ctx(ctx).Error().Err(err).Msg("error disconnecting user")
 			return events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,
 			}, nil
