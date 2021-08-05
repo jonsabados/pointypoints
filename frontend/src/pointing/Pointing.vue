@@ -71,7 +71,7 @@ export default class Pointing extends Vue {
     }
     this.loading = true
     try {
-      await vote(this.session.sessionId, this.userId, value)
+      await vote(this.$store.state.profile.authToken, this.session.sessionId, this.userId, value)
       this.user.currentVote = value
     } catch (e) {
       await this.$store.dispatch(AppStore.ACTION_REGISTER_REMOTE_ERROR, e)

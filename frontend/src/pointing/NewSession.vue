@@ -88,7 +88,7 @@ export default class NewSession extends Vue {
       facilitatorPoints: facilitatorPoints
     }
     try {
-      const session = await createSession(request)
+      const session = await createSession(this.$store.state.profile.authToken, request)
       await this.$store.commit(PointingSessionStore.MUTATION_SET_SESSION_ID, session.sessionId)
       await this.$store.commit(PointingSessionStore.MUTATION_SET_SESSION, session)
     } catch (e) {

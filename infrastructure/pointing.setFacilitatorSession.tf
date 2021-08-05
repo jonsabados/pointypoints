@@ -7,8 +7,9 @@ resource "aws_api_gateway_resource" "facilitator_path" {
 module "setFacilitatorSession_lambda" {
   source = "./rest-endpoint"
 
-  aws_region = var.aws_region
-  api_id     = aws_api_gateway_rest_api.rest_pointing.id
+  aws_region    = var.aws_region
+  api_id        = aws_api_gateway_rest_api.rest_pointing.id
+  authorizer_id = aws_api_gateway_authorizer.authorizer.id
 
   name       = "setFacilitatorSession"
   policy     = data.aws_iam_policy_document.session_modifying_lambda_policy.json

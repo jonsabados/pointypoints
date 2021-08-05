@@ -147,7 +147,7 @@ export default class Session extends Vue {
     const sessionId = this.$route.params.sessionId
     const facilitatorSessionKey = this.$route.params.facilitatorSessionKey
     try {
-      await updateSession(sessionId, facilitatorSessionKey, true, this.currentSession.facilitatorPoints)
+      await updateSession(this.$store.state.profile.authToken, sessionId, facilitatorSessionKey, true, this.currentSession.facilitatorPoints)
     } catch (e) {
       await this.$store.dispatch(AppStore.ACTION_REGISTER_REMOTE_ERROR, e)
       this.votesShownClicked = false
@@ -160,7 +160,7 @@ export default class Session extends Vue {
     const sessionId = this.$route.params.sessionId
     const facilitatorSessionKey = this.$route.params.facilitatorSessionKey
     try {
-      await makeClearVotesAPICall(sessionId, facilitatorSessionKey)
+      await makeClearVotesAPICall(this.$store.state.profile.authToken, sessionId, facilitatorSessionKey)
     } catch (e) {
       await this.$store.dispatch(AppStore.ACTION_REGISTER_REMOTE_ERROR, e)
       this.votesShownClicked = false
@@ -177,7 +177,7 @@ export default class Session extends Vue {
     await this.$store.commit(PointingSessionStore.MUTATION_SET_SESSION_ID, sessionId)
     const facilitatorSessionKey = this.$route.params.facilitatorSessionKey
     try {
-      await facilitateSession(sessionId, this.$store.state.pointingSession.connectionId as string, facilitatorSessionKey)
+      await facilitateSession(this.$store.state.profile.authToken, sessionId, this.$store.state.pointingSession.connectionId as string, facilitatorSessionKey)
     } catch (e) {
       await this.$store.dispatch(AppStore.ACTION_REGISTER_REMOTE_ERROR, e)
     }

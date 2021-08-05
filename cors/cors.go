@@ -21,7 +21,7 @@ func NewResponseHeaderBuilder(allowedDomains []string) ResponseHeaderBuilder {
 		headers := make(map[string]string)
 		if origin != "" && isOriginAllowed(origin, allowedDomains) {
 			headers["Access-Control-Allow-Origin"] = origin
-			headers["Access-Control-Allow-Headers"] = "Authorization,Content-Type"
+			headers["Access-Control-Allow-Headers"] = "Authorization,Content-Type,X-Facilitator-Key"
 			headers["Access-Control-Expose-Headers"] = "Location"
 			headers["Access-Control-Allow-Methods"] = "OPTIONS,HEAD,GET,POST,PUT,DELETE"
 		} else {

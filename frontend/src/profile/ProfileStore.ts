@@ -17,7 +17,7 @@ export class ProfileStore extends VuexModule<ProfileState> {
 
   isReady: boolean = false
   signedIn: boolean = false
-  authToken: string = ''
+  authToken: string = 'anonymous'
   remoteProfile: Profile | null = null
 
   @Mutation

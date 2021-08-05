@@ -69,12 +69,8 @@ type endpointMapper struct {
 func (e *endpointMapper) AllowedEndpoints(_ context.Context, _ goauth.Principal) ([]aws.AllowedEndpoint, error) {
 	return []aws.AllowedEndpoint{
 		{
-			Method: http.MethodGet,
-			Path:   "profile",
-		},
-		{
-			Method: http.MethodPut,
-			Path:   "profile",
+			Method: "*",
+			Path:   "*",
 		},
 	}, nil
 }
@@ -93,6 +89,7 @@ func main() {
 	writeProfile := profile.NewWriter(dynamo, profileTable)
 
 	conf := aws.AuthorizerLambdaConfig{}
+	conf.AllowAnonymous = true
 	conf.CallbackFactory = func(ctx context.Context) aws.AuthorizerCallback {
 		ctx = logPreparer(ctx)
 		return &authCallback{ctx, fetchProfile, writeProfile}
