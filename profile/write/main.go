@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"os"
-	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -63,7 +61,7 @@ func main() {
 	dynamo := lambdautil.NewDynamoClient(sess)
 	writeProfile := profile.NewWriter(dynamo, lambdautil.ProfileTable)
 
-	allowedDomains := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
+	allowedDomains := lambdautil.AllowedCORSOrigins()
 
 	handler := NewHandler(logPreparer, cors.NewResponseHeaderBuilder(allowedDomains), writeProfile)
 	lambda.Start(handler)

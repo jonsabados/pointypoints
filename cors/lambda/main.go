@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"net/http"
-	"os"
-	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -40,6 +38,6 @@ func main() {
 		panic(err)
 	}
 
-	allowedDomains := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
+	allowedDomains := lambdautil.AllowedCORSOrigins()
 	lambda.Start(newHandler(logPreparer, cors.NewResponseHeaderBuilder(allowedDomains)))
 }

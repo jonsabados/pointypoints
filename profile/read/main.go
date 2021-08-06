@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"os"
-	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -54,7 +52,7 @@ func main() {
 	dynamo := lambdautil.NewDynamoClient(sess)
 	fetchProfile := profile.NewFetcher(dynamo, profileTable)
 
-	allowedDomains := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
+	allowedDomains := lambdautil.AllowedCORSOrigins()
 
 	handler := NewHandler(logPreparer, cors.NewResponseHeaderBuilder(allowedDomains), fetchProfile)
 	lambda.Start(handler)

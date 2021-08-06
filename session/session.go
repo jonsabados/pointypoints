@@ -32,6 +32,9 @@ const (
 	watcherRecordRangeKeyPrefix     = "watcher:"
 )
 
+var ErrorSessionNotFound = errors.New("session not found")
+var ErrorUserNotFound = errors.New("user not found")
+
 type JoinSessionRequest struct {
 	Name         string `json:"name,omitempty"`
 	Handle       string `json:"handle,omitempty"`
@@ -134,7 +137,7 @@ func participantUserView(s CompleteSessionView, u User, connectionID string) Use
 type Starter func(ctx context.Context, initiator goauth.Principal, toStart StartRequest) (CompleteSessionView, error)
 
 func NewStarter(dynamo DynamoClient, sessionTableName string, sessionExpiration time.Duration, sf *profile.StatsUpdateFactory) Starter {
-	return func(ctx context.Context,  initiator goauth.Principal, toStart StartRequest) (CompleteSessionView, error) {
+	return func(ctx context.Context, initiator goauth.Principal, toStart StartRequest) (CompleteSessionView, error) {
 		sessionID := uuid.New().String()
 		facilitatorSessionKey := uuid.New().String()
 
@@ -149,10 +152,10 @@ func NewStarter(dynamo DynamoClient, sessionTableName string, sessionExpiration 
 				"FacilitatorSessionKey": {S: aws.String(facilitatorSessionKey)},
 				"FacilitatorPoints":     {BOOL: aws.Bool(toStart.FacilitatorPoints)},
 				// duplicating facilitator info so it can be resurrected in the event of a reload without having to have the client keep track
-				"FacilitatorName":       {S: aws.String(toStart.Facilitator.Name)},
-				"FacilitatorHandle":     {S: aws.String(toStart.Facilitator.Handle)},
-				"FacilitatorUserID":     {S: aws.String(toStart.Facilitator.UserID)},
-				"Expiration":            expiration,
+				"FacilitatorName":   {S: aws.String(toStart.Facilitator.Name)},
+				"FacilitatorHandle": {S: aws.String(toStart.Facilitator.Handle)},
+				"FacilitatorUserID": {S: aws.String(toStart.Facilitator.UserID)},
+				"Expiration":        expiration,
 			},
 		}
 
@@ -199,10 +202,10 @@ func NewSaver(dynamo DynamoClient, tableName string, notifyObservers ChangeNotif
 				"FacilitatorSessionKey": {S: aws.String(toSave.FacilitatorSessionKey)},
 				"FacilitatorPoints":     {BOOL: aws.Bool(toSave.FacilitatorPoints)},
 				// duplicating facilitator info so it can be resurrected in the event of a reload without having to have the client keep track
-				"FacilitatorName":       {S: aws.String(toSave.Facilitator.Name)},
-				"FacilitatorHandle":     {S: aws.String(toSave.Facilitator.Handle)},
-				"FacilitatorUserID":     {S: aws.String(toSave.Facilitator.UserID)},
-				"Expiration":            {N: aws.String(strconv.FormatInt(time.Now().Add(sessionExpiration).Unix(), 10))},
+				"FacilitatorName":   {S: aws.String(toSave.Facilitator.Name)},
+				"FacilitatorHandle": {S: aws.String(toSave.Facilitator.Handle)},
+				"FacilitatorUserID": {S: aws.String(toSave.Facilitator.UserID)},
+				"Expiration":        {N: aws.String(strconv.FormatInt(time.Now().Add(sessionExpiration).Unix(), 10))},
 			},
 		}
 
@@ -239,12 +242,10 @@ func NewSaver(dynamo DynamoClient, tableName string, notifyObservers ChangeNotif
 	}
 }
 
-// ew ew ew ew ew re. isVote. This is actually a sign of poor design, lambda funcs are doing way to much logic, we should
-// nix the functional approach and make more proper service thing. This will work for now...
-type UserSaver func(ctx context.Context, initiator goauth.Principal, sessionID string, user User, userType UserType, isVote bool) error
+type JoinSaver func(ctx context.Context, initiator goauth.Principal, sessionID string, user User, userType UserType) error
 
-func NewUserSaver(dynamo DynamoClient, tableName string, sessionExpiration time.Duration, sf *profile.StatsUpdateFactory) UserSaver {
-	return func(ctx context.Context, initiator goauth.Principal, sessionID string, user User, userType UserType, isVote bool) error {
+func NewJoinSaver(dynamo DynamoClient, tableName string, sessionExpiration time.Duration, sf *profile.StatsUpdateFactory) JoinSaver {
+	return func(ctx context.Context, initiator goauth.Principal, sessionID string, user User, userType UserType) error {
 		expiration := &dynamodb.AttributeValue{N: aws.String(strconv.FormatInt(time.Now().Add(sessionExpiration).Unix(), 10))}
 
 		actions := []*dynamodb.TransactWriteItem{
@@ -256,11 +257,7 @@ func NewUserSaver(dynamo DynamoClient, tableName string, sessionExpiration time.
 			},
 		}
 
-		if isVote {
-			actions = append(actions, &dynamodb.TransactWriteItem{
-				Update: sf.VoteIncrement(initiator.UserID),
-			})
-		} else if userType == Participant {
+		if userType == Participant {
 			actions = append(actions, &dynamodb.TransactWriteItem{
 				Update: sf.SessionJoinIncrement(initiator.UserID),
 			})
@@ -270,7 +267,33 @@ func NewUserSaver(dynamo DynamoClient, tableName string, sessionExpiration time.
 			TransactItems: actions,
 		})
 
-		return errors.WithStack(err)
+		return errors.Wrap(err, "error writing user record to dynamo")
+	}
+}
+
+type VoteRecorder func(ctx context.Context, initiator goauth.Principal, sessionID string, user User, userType UserType) error
+
+func NewVoteRecorder(dynamo DynamoClient, tableName string, sessionExpiration time.Duration, sf *profile.StatsUpdateFactory) VoteRecorder {
+	return func(ctx context.Context, initiator goauth.Principal, sessionID string, user User, userType UserType) error {
+		expiration := &dynamodb.AttributeValue{N: aws.String(strconv.FormatInt(time.Now().Add(sessionExpiration).Unix(), 10))}
+
+		actions := []*dynamodb.TransactWriteItem{
+			{
+				Put: &dynamodb.Put{
+					TableName: aws.String(tableName),
+					Item:      convertUser(sessionID, userType, user, expiration),
+				},
+			},
+			{
+				Update: sf.VoteIncrement(initiator.UserID),
+			},
+		}
+
+		_, err := dynamo.TransactWriteItemsWithContext(ctx, &dynamodb.TransactWriteItemsInput{
+			TransactItems: actions,
+		})
+
+		return errors.Wrap(err, "error recording vote")
 	}
 }
 
@@ -326,12 +349,12 @@ func NewLoader(dynamo DynamoClient, tableName string) Loader {
 	}
 }
 
-func userRangeKey(user User, userType UserType) *dynamodb.AttributeValue {
+func userRangeKey(connectionID string, userType UserType) *dynamodb.AttributeValue {
 	switch userType {
 	case Facilitator:
 		return &dynamodb.AttributeValue{S: aws.String(facilitatorRecordRangeKeyValue)}
 	case Participant:
-		return &dynamodb.AttributeValue{S: aws.String(fmt.Sprintf("%s%s", participantRecordRangeKeyPrefix, user.SocketID))}
+		return &dynamodb.AttributeValue{S: aws.String(fmt.Sprintf("%s%s", participantRecordRangeKeyPrefix, connectionID))}
 	default:
 		panic(fmt.Sprintf("unknown user type %d", userType))
 	}
@@ -340,7 +363,7 @@ func userRangeKey(user User, userType UserType) *dynamodb.AttributeValue {
 func convertUser(sessionID string, userType UserType, u User, expiration *dynamodb.AttributeValue) map[string]*dynamodb.AttributeValue {
 	ret := map[string]*dynamodb.AttributeValue{
 		"SessionID":  {S: aws.String(sessionID)},
-		"RangeKey":   userRangeKey(u, userType),
+		"RangeKey":   userRangeKey(u.SocketID, userType),
 		"UserID":     {S: aws.String(u.UserID)},
 		"Name":       {S: aws.String(u.Name)},
 		"Handle":     {S: aws.String(u.Handle)},

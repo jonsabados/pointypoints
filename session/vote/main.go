@@ -19,7 +19,7 @@ import (
 	"github.com/jonsabados/pointypoints/session"
 )
 
-func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBuilder, loadSession session.Loader, saveUser session.UserSaver, notifyParticipants session.ChangeNotifier) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBuilder, loadSession session.Loader, recordVote session.VoteRecorder, notifyParticipants session.ChangeNotifier) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 		ctx = prepareLogs(ctx)
 		r := new(session.VoteRequest)
@@ -68,7 +68,7 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 			return api.NewInternalServerError(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
 
-		err = saveUser(ctx, principal, sessionID, *user, userType, true)
+		err = recordVote(ctx, principal, sessionID, *user, userType)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Err(err).Msg("error saving session")
 			return api.NewInternalServerError(ctx, corsHeaders(ctx, request.Headers)), nil
@@ -93,10 +93,10 @@ func main() {
 
 	dynamo := lambdautil.NewDynamoClient(sess)
 	loader := session.NewLoader(dynamo, lambdautil.SessionTable)
-	saveUser := session.NewUserSaver(dynamo, lambdautil.SessionTable, lambdautil.SessionTimeout, statsFactory)
+	voteRecorder := session.NewVoteRecorder(dynamo, lambdautil.SessionTable, lambdautil.SessionTimeout, statsFactory)
 	notifier := session.NewChangeNotifier(dynamo, lambdautil.SessionTable, lambdautil.NewProdMessageDispatcher())
 
 	allowedDomains := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
 
-	lambda.Start(NewHandler(logPreparer, cors.NewResponseHeaderBuilder(allowedDomains), loader, saveUser, notifier))
+	lambda.Start(NewHandler(logPreparer, cors.NewResponseHeaderBuilder(allowedDomains), loader, voteRecorder, notifier))
 }

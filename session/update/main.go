@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"os"
-	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -66,7 +64,7 @@ func main() {
 	notifier := session.NewChangeNotifier(dynamo, lambdautil.SessionTable, lambdautil.NewProdMessageDispatcher())
 	saveSess := session.NewSaver(dynamo, lambdautil.SessionTable, notifier, lambdautil.SessionTimeout)
 
-	allowedDomains := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
+	allowedDomains := lambdautil.AllowedCORSOrigins()
 
 	lambda.Start(NewHandler(logPreparer, cors.NewResponseHeaderBuilder(allowedDomains), loader, saveSess))
 }

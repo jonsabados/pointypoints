@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"os"
-	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -19,7 +17,7 @@ import (
 	"github.com/jonsabados/pointypoints/session"
 )
 
-func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBuilder, loadSession session.Loader, dispatch api.MessageDispatcher, saveUser session.UserSaver) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBuilder, loadSession session.Loader, dispatch api.MessageDispatcher, saveJoin session.JoinSaver) func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	return func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 		ctx = prepareLogs(ctx)
 
@@ -52,8 +50,7 @@ func NewHandler(prepareLogs logging.Preparer, corsHeaders cors.ResponseHeaderBui
 			return api.NewInternalServerError(ctx, corsHeaders(ctx, request.Headers)), nil
 		}
 
-		sess.Facilitator.SocketID = l.ConnectionID
-		err = saveUser(ctx, principal, sessionID, sess.Facilitator, session.Facilitator, false)
+		err = saveJoin(ctx, principal, sessionID, sess.Facilitator, session.Facilitator)
 		if err != nil {
 			zerolog.Ctx(ctx).Error().Err(err).Msg("error saving session")
 			return api.NewInternalServerError(ctx, corsHeaders(ctx, request.Headers)), nil
@@ -81,9 +78,9 @@ func main() {
 	dynamo := lambdautil.NewDynamoClient(sess)
 	loader := session.NewLoader(dynamo, lambdautil.SessionTable)
 	dispatcher := lambdautil.NewProdMessageDispatcher()
-	userSaver := session.NewUserSaver(dynamo, lambdautil.SessionTable, lambdautil.SessionTimeout, statsFactory)
+	joinSaver := session.NewJoinSaver(dynamo, lambdautil.SessionTable, lambdautil.SessionTimeout, statsFactory)
 
-	allowedDomains := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
+	allowedDomains := lambdautil.AllowedCORSOrigins()
 
-	lambda.Start(NewHandler(logPreparer, cors.NewResponseHeaderBuilder(allowedDomains), loader, dispatcher, userSaver))
+	lambda.Start(NewHandler(logPreparer, cors.NewResponseHeaderBuilder(allowedDomains), loader, dispatcher, joinSaver))
 }
