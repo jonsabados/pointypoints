@@ -10,6 +10,9 @@ describe('NewSession', () => {
 
     const state = {
       pointingSession: {
+      },
+      profile: {
+        signedIn: false
       }
     }
 
@@ -33,6 +36,41 @@ describe('NewSession', () => {
     wrapper.destroy()
   })
 
+  it('does not prompt for name and handle when signed in', () => {
+    const localVue = createLocalVue()
+    localVue.use(Vuex)
+
+    const state = {
+      pointingSession: {
+        connectionId: 'foobarblah'
+      },
+      profile: {
+        signedIn: true
+      }
+    }
+
+    const actions = {
+      endSession: sinon.spy()
+    }
+
+    const store = new Vuex.Store({
+      state,
+      actions
+    })
+
+    const wrapper = shallowMount(NewSession, {
+      attachToDocument: true,
+      localVue,
+      store
+    })
+
+    expect(wrapper.find('#facilitatorName').exists()).toBeFalsy()
+    expect(wrapper.find('#facilitatorHandle').exists()).toBeFalsy()
+    expect(wrapper.find('#startSessionButton').is(':disabled')).toBeFalsy()
+
+    wrapper.destroy()
+  })
+
   it('disables and enables the submit button based on facilitator name', () => {
     const localVue = createLocalVue()
     localVue.use(Vuex)
@@ -40,6 +78,9 @@ describe('NewSession', () => {
     const state = {
       pointingSession: {
         connectionId: 'foobarblah'
+      },
+      profile: {
+        signedIn: false
       }
     }
 
