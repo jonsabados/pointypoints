@@ -39,95 +39,47 @@ clean:
 run: frontend/.env.local
 	cd frontend && npm run serve
 
-dist/cors: dist/ $(shell find . -iname "*.go")
-	GOOS=linux go build -o dist/cors github.com/jonsabados/pointypoints/cors/lambda
+dist/corsLambda.zip: dist/ $(shell find . -iname "*.go")
+	./scripts/build_lambda.sh github.com/jonsabados/pointypoints/cmd/lambda/cors dist/corsLambda.zip
 
-dist/corsLambda.zip: dist/cors
-	cd dist && zip corsLambda.zip cors
+dist/newSessionLambda.zip: dist/ $(shell find . -iname "*.go")
+	./scripts/build_lambda.sh github.com/jonsabados/pointypoints/cmd/lambda/session/new dist/newSessionLambda.zip
 
-dist/newSession: dist/ $(shell find . -iname "*.go")
-	GOOS=linux go build -o dist/newSession github.com/jonsabados/pointypoints/session/new
+dist/connectLambda.zip: dist/ $(shell find . -iname "*.go")
+	./scripts/build_lambda.sh github.com/jonsabados/pointypoints/cmd/lambda/session/connect dist/connectLambda.zip
 
-dist/newSessionLambda.zip: dist/newSession
-	cd dist && zip newSessionLambda.zip newSession
+dist/disconnectLambda.zip: dist/ $(shell find . -iname "*.go")
+	./scripts/build_lambda.sh github.com/jonsabados/pointypoints/cmd/lambda/session/disconnect dist/disconnectLambda.zip
 
-dist/connect: dist/ $(shell find . -iname "*.go")
-	GOOS=linux go build -o dist/connect github.com/jonsabados/pointypoints/session/connect
+dist/setFacilitatorSessionLambda.zip: dist/ $(shell find . -iname "*.go")
+	./scripts/build_lambda.sh github.com/jonsabados/pointypoints/cmd/lambda/session/setfacilitator dist/setFacilitatorSessionLambda.zip
 
-dist/connectLambda.zip: dist/connect
-	cd dist && zip connectLambda.zip connect
+dist/watchSessionLambda.zip: dist/ $(shell find . -iname "*.go")
+	./scripts/build_lambda.sh github.com/jonsabados/pointypoints/cmd/lambda/session/watch dist/watchSessionLambda.zip
 
-dist/disconnect: dist/ $(shell find . -iname "*.go")
-	GOOS=linux go build -o dist/disconnect github.com/jonsabados/pointypoints/session/disconnect
+dist/joinSessionLambda.zip: dist/ $(shell find . -iname "*.go")
+	./scripts/build_lambda.sh github.com/jonsabados/pointypoints/cmd/lambda/session/join dist/joinSessionLambda.zip
 
-dist/disconnectLambda.zip: dist/disconnect
-	cd dist && zip disconnectLambda.zip disconnect
+dist/voteLambda.zip: dist/ $(shell find . -iname "*.go")
+	./scripts/build_lambda.sh github.com/jonsabados/pointypoints/cmd/lambda/session/vote dist/voteLambda.zip
 
-dist/setFacilitatorSession: dist/ $(shell find . -iname "*.go")
-	GOOS=linux go build -o dist/setFacilitatorSession github.com/jonsabados/pointypoints/session/setfacilitatorsession
+dist/updateSessionLambda.zip: dist/ $(shell find . -iname "*.go")
+	./scripts/build_lambda.sh github.com/jonsabados/pointypoints/cmd/lambda/session/update dist/updateSessionLambda.zip
 
-dist/setFacilitatorSessionLambda.zip: dist/setFacilitatorSession
-	cd dist && zip setFacilitatorSessionLambda.zip setFacilitatorSession
+dist/clearVotesLambda.zip: dist/ $(shell find . -iname "*.go")
+	./scripts/build_lambda.sh github.com/jonsabados/pointypoints/cmd/lambda/session/clearvotes dist/clearVotesLambda.zip
 
-dist/watchSession: dist/ $(shell find . -iname "*.go")
-	GOOS=linux go build -o dist/watchSession github.com/jonsabados/pointypoints/session/watchsession
+dist/pingLambda.zip: dist/ $(shell find . -iname "*.go")
+	./scripts/build_lambda.sh github.com/jonsabados/pointypoints/cmd/lambda/ping dist/pingLambda.zip
 
-dist/watchSessionLambda.zip: dist/watchSession
-	cd dist && zip watchSessionLambda.zip watchSession
+dist/authorizerLambda.zip: dist/ $(shell find . -iname "*.go")
+	./scripts/build_lambda.sh github.com/jonsabados/pointypoints/cmd/lambda/authorizer dist/authorizerLambda.zip
 
-dist/joinSession: dist/ $(shell find . -iname "*.go")
-	GOOS=linux go build -o dist/joinSession github.com/jonsabados/pointypoints/session/joinsession
+dist/profileReadLambda.zip: dist/ $(shell find . -iname "*.go")
+	./scripts/build_lambda.sh github.com/jonsabados/pointypoints/cmd/lambda/profile/read dist/profileReadLambda.zip
 
-dist/joinSessionLambda.zip: dist/joinSession
-	cd dist && zip joinSessionLambda.zip joinSession
-
-dist/vote: dist/ $(shell find . -iname "*.go")
-	GOOS=linux go build -o dist/vote github.com/jonsabados/pointypoints/session/vote
-
-dist/voteLambda.zip: dist/vote
-	cd dist && zip voteLambda.zip vote
-
-dist/showVotes: dist/ $(shell find . -iname "*.go")
-	GOOS=linux go build -o dist/showVotes github.com/jonsabados/pointypoints/session/showvotes
-
-dist/showVotesLambda.zip: dist/showVotes
-	cd dist && zip showVotesLambda.zip showVotes
-
-dist/updateSession: dist/ $(shell find . -iname "*.go")
-	GOOS=linux go build -o dist/updateSession github.com/jonsabados/pointypoints/session/update
-
-dist/updateSessionLambda.zip: dist/updateSession
-	cd dist && zip updateSessionLambda.zip updateSession
-
-dist/clearVotes: dist/ $(shell find . -iname "*.go")
-	GOOS=linux go build -o dist/clearVotes github.com/jonsabados/pointypoints/session/clearvotes
-
-dist/clearVotesLambda.zip: dist/clearVotes
-	cd dist && zip clearVotesLambda.zip clearVotes
-
-dist/ping: dist/ $(shell find . -iname "*.go")
-	GOOS=linux go build -o dist/ping github.com/jonsabados/pointypoints/ping
-
-dist/pingLambda.zip: dist/ping
-	cd dist && zip pingLambda.zip ping
-
-dist/authorizer: dist/ $(shell find . -iname "*.go")
-	GOOS=linux go build -o dist/authorizer github.com/jonsabados/pointypoints/authorizer
-
-dist/authorizerLambda.zip: dist/authorizer
-	cd dist && zip authorizerLambda.zip authorizer
-
-dist/profileRead: dist/ $(shell find . -iname "*.go")
-	GOOS=linux go build -o dist/profileRead github.com/jonsabados/pointypoints/profile/read
-
-dist/profileReadLambda.zip: dist/profileRead
-	cd dist && zip profileReadLambda.zip profileRead
-
-dist/profileWrite: dist/ $(shell find . -iname "*.go")
-	GOOS=linux go build -o dist/profileWrite github.com/jonsabados/pointypoints/profile/write
-
-dist/profileWriteLambda.zip: dist/profileWrite
-	cd dist && zip profileWriteLambda.zip profileWrite
+dist/profileWriteLambda.zip: dist/ $(shell find . -iname "*.go")
+	./scripts/build_lambda.sh github.com/jonsabados/pointypoints/cmd/lambda/profile/write dist/profileWriteLambda.zip
 
 build: frontend/dist/index.html dist/corsLambda.zip dist/newSessionLambda.zip dist/connectLambda.zip \
 	dist/disconnectLambda.zip dist/setFacilitatorSessionLambda.zip dist/watchSessionLambda.zip \

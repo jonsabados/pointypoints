@@ -38,10 +38,11 @@ resource "aws_iam_role_policy" "lambda_role_policy" {
 resource "aws_lambda_function" "lambda" {
   filename         = "../dist/${var.name}Lambda.zip"
   source_code_hash = filebase64sha256("../dist/${var.name}Lambda.zip")
-  handler          = var.name
+  runtime          = "provided.al2"
+  handler          = "bootstrap"
+  architectures    = ["arm64"]
   function_name    = "${local.workspace_prefix}${var.name}"
   role             = aws_iam_role.lambda_role.arn
-  runtime          = "go1.x"
 
   tracing_config {
     mode = "Active"

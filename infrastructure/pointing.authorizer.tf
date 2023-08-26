@@ -64,10 +64,11 @@ resource "aws_cloudwatch_log_group" "auth_lambda_logs" {
 resource "aws_lambda_function" "auth_lambda" {
   filename         = "../dist/authorizerLambda.zip"
   source_code_hash = filebase64sha256("../dist/authorizerLambda.zip")
-  handler          = "authorizer"
+  runtime          = "provided.al2"
+  handler          = "bootstrap"
+  architectures    = ["arm64"]
   function_name    = "${local.workspace_prefix}authorizer"
   role             = aws_iam_role.auth_lambda_role.arn
-  runtime          = "go1.x"
 
   tracing_config {
     mode = "Active"
